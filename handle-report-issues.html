@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=*" />
+    <title>待處理問題列表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100svh;
+        width: 100svw;
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        background: white;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        min-height: 100svh;
+        min-width: 100svw;
+        background: #f8fafc;
+        padding: 24px;
+      }
+
+      .main-content {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 8px;
+      }
+
+      .header p {
+        color: #64748b;
+        font-size: 1.1rem;
+      }
+
+      .reports-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .reports-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .section-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .section-title.pending {
+        color: #dc2626;
+      }
+
+      .section-title.resolved {
+        color: #059669;
+      }
+
+      .section-count {
+        background: #f3f4f6;
+        color: #374151;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        min-width: 24px;
+        text-align: center;
+      }
+
+      .reports-list {
+        max-height: 600px;
+        overflow-y: auto;
+      }
+
+      .report-item {
+        padding: 20px 24px;
+        border-bottom: 1px solid #f3f4f6;
+        transition: background-color 0.2s ease;
+      }
+
+      .report-item:hover {
+        background: #f9fafb;
+      }
+
+      .report-item:last-child {
+        border-bottom: none;
+      }
+
+      .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+
+      .report-name {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 1rem;
+      }
+
+      .report-time {
+        color: #6b7280;
+        font-size: 0.875rem;
+        white-space: nowrap;
+      }
+
+      .report-type {
+        display: inline-block;
+        background: #dbeafe;
+        color: #1d4ed8;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .report-reason {
+        color: #4b5563;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 12px;
+      }
+
+      .report-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .btn-small {
+        padding: 8px 16px;
+        font-size: 0.875rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-resolve {
+        background: #059669;
+        color: white;
+      }
+
+      .btn-resolve:hover {
+        background: #047857;
+      }
+
+      .empty-state {
+        padding: 60px 24px;
+        text-align: center;
+        color: #6b7280;
+      }
+
+      .empty-state svg {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 16px;
+        opacity: 0.5;
+      }
+
+      .loading {
+        padding: 60px 24px;
+        text-align: center;
+        color: #6b7280;
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .toast.info {
+        background: #3b82f6;
+      }
+
+      /* 預設：桌面版顯示，手機版隱藏 */
+      .mobile-collapsible {
+        display: none;
+      }
+
+      .desktop-header,
+      .desktop-list {
+        display: block;
+      }
+
+      /* details/summary 樣式 */
+      .mobile-summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        background: #f8fafc;
+      }
+
+      .mobile-summary:hover {
+        background: #f1f5f9;
+      }
+
+      .mobile-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .mobile-summary::after {
+        content: '▼';
+        font-size: 0.875rem;
+        color: #6b7280;
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      details[open] .mobile-summary::after {
+        transform: translateY(-50%) rotate(180deg);
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 16px;
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+
+        .header {
+          margin-bottom: 24px;
+          padding: 16px;
+        }
+
+        .header h1 {
+          font-size: 2.25rem;
+        }
+
+        .reports-container {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+
+        /* 手機版：顯示收合功能，隱藏桌面版 */
+        .reports-section .mobile-collapsible {
+          display: block;
+        }
+
+        .reports-section .desktop-header,
+        .reports-section .desktop-list {
+          display: none;
+        }
+
+        .report-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .report-actions {
+          flex-direction: row;
+          width: 100%;
+          justify-content: center;
+        }
+
+        .btn-small {
+          padding: 12px 24px;
+          font-size: 0.875rem;
+          flex: 1;
+          max-width: 200px;
+        }
+
+        .toast {
+          right: 16px;
+          left: 16px;
+          top: 16px;
+          min-width: auto;
+          transform: translateY(-110%);
+        }
+
+        .toast.show {
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="main-content">
+        <!-- 頁面標題 -->
+        <div class="header">
+          <h1>問題回報管理</h1>
+        </div>
+
+        <!-- 問題列表 -->
+        <div class="reports-container">
+          <!-- 待處理問題 -->
+          <div class="reports-section">
+            <details class="mobile-collapsible" open>
+              <summary class="section-header mobile-summary">
+                <h2 class="section-title pending">🔴 待處理問題</h2>
+                <span class="section-count mr-6" id="pendingBadge">0</span>
+              </summary>
+              <div class="reports-list" id="pendingReports">
+                <div class="loading">
+                  <div class="spinner"></div>
+                  <p>載入中...</p>
+                </div>
+              </div>
+            </details>
+            <div class="desktop-header section-header flex row">
+              <h2 class="section-title pending">🔴 待處理問題</h2>
+              <span class="section-count" id="pendingBadgeDesktop">0</span>
+            </div>
+            <div class="reports-list desktop-list" id="pendingReportsDesktop">
+              <div class="loading">
+                <div class="spinner"></div>
+                <p>載入中...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 已解決問題 -->
+          <div class="reports-section">
+            <details class="mobile-collapsible" open>
+              <summary class="section-header mobile-summary">
+                <h2 class="section-title resolved">✅ 已解決問題</h2>
+                <span class="section-count mr-6" id="resolvedBadge">0</span>
+              </summary>
+              <div class="reports-list" id="resolvedReports">
+                <div class="loading">
+                  <div class="spinner"></div>
+                  <p>載入中...</p>
+                </div>
+              </div>
+            </details>
+            <div class="desktop-header section-header flex row">
+              <h2 class="section-title resolved">✅ 已解決問題</h2>
+              <span class="section-count" id="resolvedBadgeDesktop">0</span>
+            </div>
+            <div class="reports-list desktop-list" id="resolvedReportsDesktop">
+              <div class="loading">
+                <div class="spinner"></div>
+                <p>載入中...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <style>
+      .toast {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        padding: 16px 24px;
+        border-radius: 16px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        transform: translateX(110%);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        backdrop-filter: blur(15px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        min-width: 300px;
+      }
+
+      .toast.show {
+        transform: translateX(0);
+      }
+
+      .toast.success {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.9) 0%,
+          rgba(5, 150, 105, 0.9) 100%
+        );
+      }
+
+      .toast.error {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.9) 100%);
+      }
+
+      .toast.warning {
+        background: linear-gradient(
+          135deg,
+          rgba(245, 158, 11, 0.9) 0%,
+          rgba(217, 119, 6, 0.9) 100%
+        );
+      }
+
+      .toast.info {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.9) 0%,
+          rgba(37, 99, 235, 0.9) 100%
+        );
+      }
+    </style>
+
+    <script>
+      // API URL
+      const API_URL = 'https://guangfu250923.pttapp.cc';
+
+      // 獲取回報問題資料
+      const getReportIssues = async () => {
+        try {
+          const response = await fetch(`${API_URL}/reports`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error('Error fetching report issues data:', error);
+          showToast('獲取待處理問題資料失敗', 'error');
+          return [];
+        }
+      };
+
+      // 更新問題狀態
+      const updateReportStatus = async (reportId, status) => {
+        try {
+          const response = await fetch(`${API_URL}/reports/${reportId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status }),
+          });
+
+          if (response.ok) {
+            showToast(status === 'true' ? '問題已標記為已解決' : '問題已標記為待處理', 'success');
+            loadReports(); // 重新載入報告列表
+          } else {
+            throw new Error('更新失敗');
+          }
+        } catch (error) {
+          console.error('Error updating report status:', error);
+          showToast('更新問題狀態失敗', 'error');
+        }
+      };
+
+      // 顯示 Toast 通知
+      function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      // 格式化時間
+      function formatTime(timestamp) {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString('zh-TW', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+
+      // 獲取類型顯示名稱
+      function getLocationTypeDisplayName(type) {
+        const typeMap = {
+          accommodation: '住宿點',
+          water_station: '加水站',
+          restroom: '廁所',
+          shower_station: '洗澡點',
+          medical_station: '醫療站',
+        };
+        return typeMap[type] || type;
+      }
+
+      // 渲染問題項目
+      function renderReportItem(report) {
+        const isResolved = report.status === 'true';
+        const actionButton = isResolved
+          ? `<button class="btn-small btn-resolve" onclick="updateReportStatus('${report.id}', 'false')">標記為待處理</button>`
+          : `<button class="btn-small btn-resolve" onclick="updateReportStatus('${report.id}', 'true')">標記為已解決</button>`;
+
+        return `
+          <div class="report-item">
+            <div class="report-header">
+              <div class="report-name">${report.name}</div>
+              <div class="report-time">${formatTime(report.created_at)}</div>
+            </div>
+            <div class="report-type">${getLocationTypeDisplayName(report.location_type)}</div>
+            <div class="report-reason">${report.reason}</div>
+            <div class="report-actions">
+              ${actionButton}
+            </div>
+          </div>
+        `;
+      }
+
+      // 渲染空狀態
+      function renderEmptyState(message) {
+        return `
+          <div class="empty-state">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p>${message}</p>
+          </div>
+        `;
+      }
+
+      // 載入和顯示報告
+      async function loadReports() {
+        try {
+          const reports = (await getReportIssues()).member;
+
+          if (!Array.isArray(reports)) {
+            console.error('Invalid reports data:', reports);
+            return;
+          }
+
+          // 按狀態分類
+          const pendingReports = reports.filter((report) => report.status === 'false');
+          const resolvedReports = reports.filter((report) => report.status === 'true');
+
+          // 排序：待處理問題按創建時間升序（較早的在前），已解決問題按更新時間降序
+          pendingReports.sort((a, b) => a.created_at - b.created_at);
+          resolvedReports.sort((a, b) => b.updated_at - a.updated_at);
+
+          // 更新統計數字
+          document.getElementById('pendingBadge').textContent = pendingReports.length;
+          document.getElementById('pendingBadgeDesktop').textContent = pendingReports.length;
+          document.getElementById('resolvedBadge').textContent = resolvedReports.length;
+          document.getElementById('resolvedBadgeDesktop').textContent = resolvedReports.length;
+
+          // 渲染待處理問題
+          const pendingHtml =
+            pendingReports.length === 0
+              ? renderEmptyState('暫無待處理問題')
+              : pendingReports.map(renderReportItem).join('');
+
+          document.getElementById('pendingReports').innerHTML = pendingHtml;
+          document.getElementById('pendingReportsDesktop').innerHTML = pendingHtml;
+
+          // 渲染已解決問題
+          const resolvedHtml =
+            resolvedReports.length === 0
+              ? renderEmptyState('暫無已解決問題')
+              : resolvedReports.map(renderReportItem).join('');
+
+          document.getElementById('resolvedReports').innerHTML = resolvedHtml;
+          document.getElementById('resolvedReportsDesktop').innerHTML = resolvedHtml;
+        } catch (error) {
+          console.error('Error loading reports:', error);
+          showToast('載入問題列表失敗', 'error');
+        }
+      }
+
+      // 頁面載入完成後初始化
+      document.addEventListener('DOMContentLoaded', function () {
+        loadReports();
+
+        // 每30秒自動刷新一次
+        setInterval(loadReports, 30000);
+      });
+
+      // 將函數暴露到全域作用域供HTML調用
+      window.updateReportStatus = updateReportStatus;
+    </script>
+  </body>
+</html>
