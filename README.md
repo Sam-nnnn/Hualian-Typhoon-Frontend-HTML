@@ -138,3 +138,14 @@
 - **桌面版**：完整功能展示，側邊欄資訊面板
 - **平板版**：適應性布局調整
 - **手機版**：觸控優化，自動隱藏側邊欄
+
+## 🌐 部署環境
+
+### Production 生產環境
+
+**網址：** [https://guangfu250923-map.pttapp.cc](https://guangfu250923-map.pttapp.cc)
+
+### Dev 開發環境
+
+**網址：**
+[https://hualian-typhoon-frontend-dev.zeabur.app](https://hualian-typhoon-frontend-dev.zeabur.app)
