@@ -741,8 +741,6 @@
           registration_method: formData.get('registration_method') || '',
           facilities: facilities,
           distance_to_disaster_area: formData.get('distance_to_disaster_area') || '',
-          created_at: Math.floor(Date.now() / 1000),
-          updated_at: Math.floor(Date.now() / 1000),
         };
 
         return data;
