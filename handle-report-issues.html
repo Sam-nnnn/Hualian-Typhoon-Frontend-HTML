@@ -139,20 +139,23 @@
       }
 
       .report-time {
-        color: #6b7280;
-        font-size: 0.875rem;
-        white-space: nowrap;
+        color: #4b5563;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 6px;
       }
 
       .report-type {
-        display: inline-block;
+        max-width: fit-content;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         background: #dbeafe;
         color: #1d4ed8;
         padding: 2px 8px;
         border-radius: 12px;
         font-size: 0.75rem;
         font-weight: 500;
-        margin-bottom: 8px;
       }
 
       .report-reason {
@@ -545,11 +548,15 @@
         return `
           <div class="report-item">
             <div class="report-header">
-              <div class="report-name">${report.name}</div>
-              <div class="report-time">${formatTime(report.created_at)}</div>
-            </div>
-            <div class="report-type">${getLocationTypeDisplayName(report.location_type)}</div>
-            <div class="report-reason">${report.reason}</div>
+              <div class="flex row align-center justify-center gap-2"> 
+                <div class="report-type">${getLocationTypeDisplayName(report.location_type)}</div>
+                <div class="report-name">${report.name}</div>
+              </div>
+              </div>
+              
+            <div class="report-time">創建時間：${formatTime(report.created_at)}</div>
+            <div class="report-reason">問題描述：${report.reason}</div>
+            ${report.notes ? `<div class="report-reason">其他資訊：${report.notes}</div>` : ''}
             <div class="report-actions">
               ${actionButton}
             </div>
