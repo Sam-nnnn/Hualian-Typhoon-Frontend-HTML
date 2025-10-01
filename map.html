@@ -1,0 +1,2822 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=*" />
+    <title>地點總覽</title>
+    <script src="https://cdn.tailwindcss.com"></script> 
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> 
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      html, body {
+        height: 100svh;
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        background-color: #000;
+        overflow: hidden;
+      }
+      
+      #map {
+        height: 100svh;
+        width: 100svw;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+      
+      /* 控制面板樣式 */
+      .location-panel {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+        display: flex;
+        gap: 8px;
+      }
+
+      .bottom-tabs-panel {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        z-index: 1000;
+        background: rgba(0,0,0, 0.1);
+        backdrop-filter: blur(0.1px);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .control-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .control-buttons {
+        flex: 1;
+        overflow-x: auto;
+        display: flex;
+        gap: 8px;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+      }
+      
+      .control-buttons::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
+      }
+      
+      /* 側邊資訊面板 */
+      .info-sidebar {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        width: 320px;
+        max-height: calc(100svh - 120px);
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow-y: auto;
+        transform: translateX(110vw);
+        transition: transform 0.3s ease;
+      }
+      
+      .info-sidebar.show {
+        transform: translateX(0);
+      }
+      
+      /* 手機版響應式設計 */
+      @media (max-width: 768px) {
+        .location-panel {
+          top: 10px;
+          left: 10px;
+        }
+        
+        .bottom-tabs-panel {
+          bottom: 10px;
+          left: 10px;
+          right: 10px;
+          padding: 12px;
+        }
+        
+        .control-buttons {
+          gap: 6px;
+        }
+        
+        .info-sidebar {
+          top: 10px;
+          left: 10px;
+          right: 10px;
+          width: auto;
+          max-height: calc(100svh - 110px);
+        }
+        
+        .map-control-btn {
+          font-size: 12px;
+          padding: 6px 10px;
+          margin: 0;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        
+        .location-btn {
+          width: 36px;
+          height: 36px;
+        }
+      }
+      
+      .btn {
+        font-weight: bold;
+        padding: 10px 16px;
+        border-radius: 8px;
+        outline: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      
+      .btn-primary {
+        background-color: #3b82f6;
+        color: white;
+      }
+      
+      .btn-primary:hover {
+        background-color: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+      
+      .btn-secondary {
+        background-color: #6b7280;
+        color: white;
+      }
+      
+      .btn-secondary:hover {
+        background-color: #4b5563;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      /* 返回按鈕樣式 */
+      .go-back-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #4b5563;
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .go-back-btn:hover {
+        background-color: #374151;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      /* 定位按鈕樣式 */
+      .location-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #9ca3af;
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .location-btn:hover {
+        background-color: #6b7280;
+        transform: translateY(-2px);
+      }
+
+      .location-btn.has-location {
+        background-color: #3b82f6;
+      }
+
+      .location-btn.has-location:hover {
+        background-color: #2563eb;
+      }
+
+      /* 位置追蹤狀態樣式 */
+      .location-btn.tracking {
+        background-color: #10b981;
+        animation: tracking-pulse 2s infinite;
+      }
+
+      .location-btn.tracking:hover {
+        background-color: #059669;
+      }
+
+      @keyframes tracking-pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+      }
+
+      /* 人力請求按鈕特殊樣式 */
+      #requestHelpBtn {
+        background-color: #ef4444;
+        color: white;
+      }
+
+      #requestHelpBtn:hover {
+        background-color: #dc2626;
+        transform: translateY(-2px);
+      }
+
+      /* 手機版響應式設計 */
+      @media (max-width: 768px) {
+        .top-control-panel {
+          top: 10px;
+          left: 10px;
+          right: 10px;
+          padding: 8px 12px;
+        }
+        
+        .bottom-tabs-panel {
+          bottom: 10px;
+          left: 10px;
+          right: 10px;
+          padding: 12px;
+        }
+        
+        .control-buttons {
+          gap: 6px;
+        }
+        
+        .map-control-btn {
+          padding: 6px 10px;
+          font-size: 12px;
+        }
+        
+        .location-btn {
+          width: 36px;
+          height: 36px;
+        }
+      }
+
+
+      
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+      }
+      
+      .status-available { background-color: #10b981; }
+      .status-full { background-color: #ef4444; }
+      .status-unknown { background-color: #f59e0b; }
+      
+      /* 地圖控制按鈕樣式 */
+      .map-control-btn {
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      
+      .map-control-btn:hover {
+        background-color: #f3f4f6;
+        border-color: #3b82f6;
+      }
+      
+      .map-control-btn.active {
+        background-color: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+      }
+      
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 14px;
+      }
+      
+      .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        flex-shrink: 0;
+      }
+      
+      /* 切換按鈕 */
+      .toggle-info-btn {
+        position: fixed;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        z-index: 1001;
+        background: rgba(255, 255, 255, 0.95);
+        border: none;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+      }
+      
+      .toggle-info-btn:hover {
+        background: white;
+        transform: translateY(-50%) scale(1.1);
+      }
+      
+      @media (max-width: 768px) {
+        .toggle-info-btn {
+          bottom: 20px;
+          top: auto;
+          right: 20px;
+          transform: none;
+        }
+        
+        .toggle-info-btn:hover {
+          transform: scale(1.1);
+        }
+      }
+      
+      /* Details 收合箭頭動畫 */
+      details .details-arrow {
+        transform: rotate(180deg);
+        transition: transform 0.2s ease;
+      }
+      
+      details:not([open]) .details-arrow {
+        transform: rotate(0deg);
+      }
+
+      /* 自定義確認對話框樣式 */
+      #customConfirmModal {
+        backdrop-filter: blur(4px);
+      }
+      
+      #customConfirmModal .bg-white {
+        animation: modalSlideIn 0.3s ease-out;
+      }
+      
+      @keyframes modalSlideIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95) translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      
+      #customConfirmModal.hidden .bg-white {
+        animation: modalSlideOut 0.2s ease-in;
+      }
+      
+      @keyframes modalSlideOut {
+        from {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.95) translateY(-20px);
+        }
+      }
+    </style>
+
+  <body class="antialiased text-gray-800">
+    <!-- 地圖容器 -->
+    <div id="map"></div>
+
+    <!-- 定位按鈕面板 -->
+    <div class="location-panel">
+        <button id="goBackBtn" class="go-back-btn" title="返回">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+      </button>
+      <button id="locateUserBtn" class="location-btn" title="定位">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+      <button id="requestHelpBtn" class="location-btn ml-2 hidden" title="請求人力支援">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- 底部分頁面板 -->
+    <div class="bottom-tabs-panel">
+      <div class="control-buttons">
+        <button id="showAllBtn" class="map-control-btn active">全部</button>
+        <button id="showWaterStationBtn" class="map-control-btn">加水站</button>
+        <button id="showRestroomBtn" class="map-control-btn">廁所</button>
+        <button id="showShowerStationBtn" class="map-control-btn">洗澡點</button>
+        <button id="showMedicalStationBtn" class="map-control-btn">醫療站</button>
+        <button id="showAccommodationBtn" class="map-control-btn">住宿</button>
+        <button id="showShuttleBtn" class="map-control-btn hidden">交通</button>
+        <button id="showDisasterAreaBtn" class="map-control-btn hidden">災區</button> 
+      </div>
+      <button id="toggleInfoBtn" class="btn btn-primary text-sm">更多</button>
+    </div>
+
+    <!-- 資訊側邊欄 -->
+    <div class="info-sidebar" id="infoSidebar">
+      <!-- 圖例說明 -->
+      <div class="mb-6">
+        <h3 class="text-lg font-bold mb-3">圖例說明</h3>
+        <div class="space-y-2">
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #3b82f6;"></div>
+            <span>光復火車站</span>
+          </div>
+          <div class="legend-item">
+            <div style="background-color: #10b981; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 0.5rem;">🏠</div>
+            <span>住宿點</span>
+          </div>
+          <div class="legend-item">
+            <div style="background-color: #06b6d4; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 0.5rem;">💧</div>
+            <span>加水站</span>
+          </div>
+          <div class="legend-item">
+            <div style="background-color: #8b5cf6; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 0.5rem;">🚻</div>
+            <span>廁所</span>
+          </div>
+          <div class="legend-item">
+            <div style="background-color: #f59e0b; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 0.5rem;">🚿</div>
+            <span>洗澡點</span>
+          </div>
+          <div class="legend-item">
+            <div style="background-color: #ef4444; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 0.5rem;">🏥</div>
+            <span>醫療站</span>
+          </div>
+          <!-- <div class="legend-item">
+            <div class="legend-color" style="background-color: #8b5cf6;"></div>
+            <span>接駁路線</span>
+          </div> -->
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #ec4899; opacity: 0.3;"></div>
+            <span>救災區域範圍</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 統計資訊 -->
+      <div class="mb-6">
+        <h3 class="text-lg font-bold mb-3">統計資訊</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span>總住宿點：</span>
+            <span class="font-semibold" id="totalAccommodations">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span>總加水站：</span>
+            <span class="font-semibold" id="totalWaterStations">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span>總廁所：</span>
+            <span class="font-semibold" id="totalRestrooms">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span>總洗澡點：</span>
+            <span class="font-semibold" id="totalShowerStations">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span>總醫療站：</span>
+            <span class="font-semibold" id="totalMedicalStations">0</span>
+          </div>
+          <!-- <div class="flex justify-between">
+            <span>總接駁路線：</span>
+            <span class="font-semibold" id="totalShuttleRoutes">0</span>
+          </div> -->
+        </div>
+      </div>
+
+      <!-- 動態列表容器 -->
+      <div id="dynamicListContainer">
+        <!-- 住宿點列表 -->
+        <div id="accommodationSection" style="display: none;">
+          <h3 class="text-lg font-bold mb-3">住宿點列表</h3>
+          <div id="accommodationList" class="space-y-3">
+            <!-- 住宿點列表將在這裡動態生成 -->
+          </div>
+        </div>
+
+        <!-- 加水站列表 -->
+        <div id="waterStationSection" style="display: none;">
+          <h3 class="text-lg font-bold mb-3">加水站列表</h3>
+          <div id="waterStationList" class="space-y-3">
+            <!-- 加水站列表將在這裡動態生成 -->
+          </div>
+        </div>
+
+        <!-- 廁所列表 -->
+        <div id="restroomSection" style="display: none;">
+          <h3 class="text-lg font-bold mb-3">廁所列表</h3>
+          <div id="restroomList" class="space-y-3">
+            <!-- 廁所列表將在這裡動態生成 -->
+          </div>
+        </div>
+
+        <!-- 洗澡點列表 -->
+        <div id="showerStationSection" style="display: none;">
+          <h3 class="text-lg font-bold mb-3">洗澡點列表</h3>
+          <div id="showerStationList" class="space-y-3">
+            <!-- 洗澡點列表將在這裡動態生成 -->
+          </div>
+        </div>
+
+        <!-- 醫療站列表 -->
+        <div id="medicalStationSection" style="display: none;">
+          <h3 class="text-lg font-bold mb-3">醫療站列表</h3>
+          <div id="medicalStationList" class="space-y-3">
+            <!-- 醫療站列表將在這裡動態生成 -->
+          </div>
+        </div>
+
+        <!-- 全部視圖列表 -->
+        <div id="allSections" style="display: block;">
+          <h3 class="text-lg font-bold mb-3">所有設施</h3>
+          <div class="space-y-4">
+            <!-- 住宿點 -->
+            <details class="border rounded-lg" open>
+              <summary class="p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                <span class="font-semibold text-gray-700 flex items-center">
+                  <span class="text-orange-600 mr-2">🏠</span>
+                  住宿點
+                  <span id="allAccommodationCount" class="ml-2 text-sm text-gray-500">(0)</span>
+                </span>
+                <svg class="w-5 h-5 transform transition-transform details-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div id="allAccommodationContent">
+                <!-- 住宿點完整列表 -->
+              </div>
+            </details>
+            
+            <!-- 加水站 -->
+            <details class="border rounded-lg" open>
+              <summary class="p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                <span class="font-semibold text-gray-700 flex items-center">
+                  <span class="text-blue-600 mr-2">💧</span>
+                  加水站
+                  <span id="allWaterStationCount" class="ml-2 text-sm text-gray-500">(0)</span>
+                </span>
+                <svg class="w-5 h-5 transform transition-transform details-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div id="allWaterStationContent">
+                <!-- 加水站完整列表 -->
+              </div>
+            </details>
+            
+            <!-- 廁所 -->
+            <details class="border rounded-lg" open>
+              <summary class="p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                <span class="font-semibold text-gray-700 flex items-center">
+                  <span class="text-green-600 mr-2">🚻</span>
+                  廁所
+                  <span id="allRestroomCount" class="ml-2 text-sm text-gray-500">(0)</span>
+                </span>
+                <svg class="w-5 h-5 transform transition-transform details-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div id="allRestroomContent">
+                <!-- 廁所完整列表 -->
+              </div>
+            </details>
+            
+            <!-- 洗澡點 -->
+            <details class="border rounded-lg" open>
+              <summary class="p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                <span class="font-semibold text-gray-700 flex items-center">
+                  <span class="text-yellow-600 mr-2">🚿</span>
+                  洗澡點
+                  <span id="allShowerStationCount" class="ml-2 text-sm text-gray-500">(0)</span>
+                </span>
+                <svg class="w-5 h-5 transform transition-transform details-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div id="allShowerStationContent">
+                <!-- 洗澡點完整列表 -->
+              </div>
+            </details>
+            
+            <!-- 醫療站 -->
+            <details class="border rounded-lg" open>
+              <summary class="p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                <span class="font-semibold text-gray-700 flex items-center">
+                  <span class="text-red-600 mr-2">🏥</span>
+                  醫療站
+                  <span id="allMedicalStationCount" class="ml-2 text-sm text-gray-500">(0)</span>
+                </span>
+                <svg class="w-5 h-5 transform transition-transform details-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div id="allMedicalStationContent">
+                <!-- 醫療站完整列表 -->
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div
+      id="toast"
+      class="fixed bottom-5 left-5 bg-gray-800 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 translate-y-10 transition-all duration-300 z-50"
+    >
+      <p id="toastMessage"></p>
+    </div> 
+
+    <!-- 人力請求 Dialog -->
+    <div id="helpRequestModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-800">請求人力支援</h3>
+          <button id="closeHelpRequestBtn" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <form id="helpRequestForm" class="space-y-4">
+          <div>
+            <label for="requestType" class="block text-sm font-medium text-gray-700 mb-1">請求類型</label>
+            <select id="requestType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <option value="">請選擇請求類型</option>
+              <option value="rescue">救援人力</option>
+              <option value="medical">醫療人力</option>
+              <!-- <option value="logistics">物資運送</option> -->
+              <option value="cleanup">清理人力</option>
+              <!-- <option value="transport">交通協助</option> -->
+              <option value="other">其他</option>
+            </select>
+          </div>
+          
+          <!-- <div>
+            <label for="urgencyLevel" class="block text-sm font-medium text-gray-700 mb-1">緊急程度</label>
+            <select id="urgencyLevel" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <option value="">請選擇緊急程度</option>
+              <option value="critical">緊急 (立即需要)</option>
+              <option value="high">高 (24小時內)</option>
+              <option value="medium">中 (48小時內)</option>
+              <option value="low">低 (一週內)</option>
+            </select>
+          </div> -->
+          
+          <div>
+            <label for="peopleNeeded" class="block text-sm font-medium text-gray-700 mb-1">所需人數</label>
+            <input type="number" id="peopleNeeded" min="1" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          </div>
+          
+          <div>
+            <label for="contactPerson" class="block text-sm font-medium text-gray-700 mb-1">聯絡人</label>
+            <input type="text" id="contactPerson" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          </div>
+          
+          <div>
+            <label for="contactPhone" class="block text-sm font-medium text-gray-700 mb-1">聯絡電話</label>
+            <input type="tel" id="contactPhone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          </div>
+          
+          <div>
+            <label for="location" class="block text-sm font-medium text-gray-700 mb-1">詳細地點</label>
+            <input type="text" id="location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="將自動填入當前位置" readonly>
+          </div>
+          
+          <div>
+            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">詳細描述</label>
+            <textarea id="description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="請詳細描述需要的協助內容..." required></textarea>
+          </div>
+          
+          <div class="flex space-x-3 pt-4">
+            <button type="button" id="cancelHelpRequestBtn" class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+              取消
+            </button>
+            <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+              提交請求
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 自定義確認對話框 -->
+    <div id="customConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div class="mb-4">
+          <h3 id="confirmTitle" class="text-lg font-bold text-gray-800 mb-2">確認</h3>
+          <p id="confirmMessage" class="text-gray-600"></p>
+        </div>
+        
+        <div class="flex space-x-3 pt-4">
+          <button id="confirmCancelBtn" class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+            取消
+          </button>
+          <button id="confirmOkBtn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+            確定
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      // DOM Elements
+      const itemModal = document.getElementById('itemModal');
+      const openModalBtn = document.getElementById('openModalBtn');
+      const closeModalBtn = document.getElementById('closeModalBtn');
+      const itemForm = document.getElementById('itemForm');
+      const itemsContainer = document.getElementById('itemsContainer');
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const filterContainer = document.getElementById('filterContainer');
+      const exportDataBtn = document.getElementById('exportDataBtn');
+
+      let pinnedItems = [];
+      let unpinnedItems = [];
+      let currentFilter = 'all';  
+
+      const API_URL = 'https://guangfu250923.pttapp.cc';
+
+      // 自定義確認對話框函數
+      function customConfirm(message, title = '確認') {
+        return new Promise((resolve) => {
+          const modal = document.getElementById('customConfirmModal');
+          const titleElement = document.getElementById('confirmTitle');
+          const messageElement = document.getElementById('confirmMessage');
+          const okBtn = document.getElementById('confirmOkBtn');
+          const cancelBtn = document.getElementById('confirmCancelBtn');
+          
+          titleElement.textContent = title;
+          // 處理換行符，將 \r\n、\n、\r 轉換為 <br> 標籤
+          const formattedMessage = message
+            .replace(/\r\n/g, '<br>')
+            .replace(/\n/g, '<br>')
+            .replace(/\r/g, '<br>');
+          messageElement.innerHTML = formattedMessage;
+          
+          // 顯示對話框
+          modal.classList.remove('hidden');
+          
+          // 處理確定按鈕
+          const handleOk = () => {
+            modal.classList.add('hidden');
+            okBtn.removeEventListener('click', handleOk);
+            cancelBtn.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleKeyDown);
+            // 等待動畫完成後解析Promise
+            setTimeout(() => resolve(true), 200);
+          };
+          
+          // 處理取消按鈕
+          const handleCancel = () => {
+            modal.classList.add('hidden');
+            okBtn.removeEventListener('click', handleOk);
+            cancelBtn.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleKeyDown);
+            // 等待動畫完成後解析Promise
+            setTimeout(() => resolve(false), 200);
+          };
+          
+          okBtn.addEventListener('click', handleOk);
+          cancelBtn.addEventListener('click', handleCancel);
+          
+          // ESC鍵取消
+          const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+              handleCancel();
+            }
+          };
+          document.addEventListener('keydown', handleKeyDown);
+          
+          // 點擊背景關閉
+          modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+              handleCancel();
+            }
+          });
+        });
+      }
+
+      const getAccommodationList = async () => {
+        try {
+          const response = await fetch(`${API_URL}/accommodations`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',  
+            }
+          });
+          const data = await response.json()
+
+          return data;
+        } catch (error) {
+          console.error('Error fetching accommodation data:', error);
+          showToast('獲取住宿資料失敗', 'error');
+          return [];
+        }
+      };
+
+    const getWaterRefillStationList = async () => {
+        try {
+          const response = await fetch(`${API_URL}/water_refill_stations`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',  
+            }
+          });
+          const data = await response.json()
+
+          return data;
+        } catch (error) {
+          console.error('Error fetching water refill station data:', error);
+          showToast('獲取加水站資料失敗', 'error');
+          return [];
+        }
+      };
+      
+    const getRestroomsList = async () => {
+        try {
+          const response = await fetch(`${API_URL}/restrooms`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',  
+            }
+          });
+          const data = await response.json()
+
+          return data;
+        } catch (error) {
+          console.error('Error fetching restroom data:', error);
+          showToast('獲取廁所資料失敗', 'error');
+          return [];
+        }
+      };
+
+    const getMedicalStationList = async () => {
+        try {
+          const response = await fetch(`${API_URL}/medical_stations`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',  
+            }
+          });
+          const data = await response.json()
+
+          return data;
+        } catch (error) {
+          console.error('Error fetching medical station data:', error);
+          showToast('獲取醫療站資料失敗', 'error');
+          return [];
+        }
+      };
+      
+    const getShowerStationList = async () => {
+        try {
+          const response = await fetch(`${API_URL}/shower_stations`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          const data = await response.json()
+
+          return data;
+        } catch (error) {
+          console.error('Error fetching shower station data:', error);
+          showToast('獲取洗澡點資料失敗', 'error');
+          return [];
+        }
+      };
+
+      // 光復火車站座標
+      const guangfuStation = {
+        lat:23.66666199167715,
+        lng: 121.42127202771245,
+        name: '光復火車站'
+      };
+
+      // 接駁路線座標點
+      const shuttleRoutes = [
+    //     {
+    //     "填表人": "",
+    //     "出發時間": "每日上午7:00至10:00、下午16:00至20:00 - 每小時發車",
+    //     "出發地點": "新城、花蓮、吉安、壽豐、玉里",
+    //     "目的地": "光復",
+    //     "route": [
+    //         [24.12786103472596, 121.64084427078892], 
+    //         [23.993051286661405, 121.60158677432389], 
+    //         [23.968242211828, 121.58264853896807],
+    //         [23.869280085605453, 121.51091808661023],
+    //         [23.666473553075193, 121.42121838314402],
+    //         [23.331815524367528, 121.31176291197325],
+    //     ],
+    //     "費用": 0, 
+    //     "聯絡人": {text:"", url: ""},
+    //     "備註": "志工免費大客車接駁服務🚌\r\n📍服務地點：新城、花蓮、吉安、壽豐及玉里站，每日提供 #6輛大客車 #6條服務路線，\r\n📍服務時段：，上午7:00至10:00、下午16:00至20:00，每小時發車\r\n📍各火車站點及接駁大客車皆張貼識別圖卡供民眾識別，如有交通接駁需求之志工可搭乘使用。"
+    //   },
+    //   {
+    //     "填表人": "小路",
+    //     "出發時間": "9/30 04:00出發, 16:00回",
+    //     "出發地點": "桃園",
+    //     "目的地": "光復",
+    //     "route": [
+    //         [24.98914852563466, 121.31451510205873],
+    //         [23.666473553075193, 121.42121838314402]
+    //     ],
+    //     "費用": 0, 
+    //     "聯絡人": {text:"hikarurururu", url: "https://www.threads.com/@hikarurururu"},
+    //     "備註": ""
+    //   },
+    //   {
+    //     "填表人": "小路",
+    //     "出發時間": "10/1 04:15出發, 18:00~19:00回",
+    //     "出發地點": "板橋車站",
+    //     "目的地": "光復",
+    //     "route": [
+    //         [25.01427393578768, 121.46355785779636],
+    //         [23.666473553075193, 121.42121838314402]
+    //     ],
+    //     "費用": 0, 
+    //     "聯絡人": {text:"yenpeiju  Threads", url: "https://www.threads.com/@yenpeiju/post/DPJGf8oEiZ3?xmt=AQF0O4QTEvKnYCEd7CHVTpbqhT7818t2ofoqygeTn_NwIg"},
+    //     "備註": ""
+    //   },
+    //   {
+    //     "填表人": "小路",
+    //     "出發時間": "9/30 00:00出發, 10/1回",
+    //     "出發地點": "台中市 五權車站",
+    //     "目的地": "光復",
+    //     "route": [
+    //         [24.128934015810774, 120.66660694082738],
+    //         [23.666473553075193, 121.42121838314402]
+    //     ],
+    //     "費用": 0, 
+    //     "聯絡人": {text:"molly1217lin", url: "https://www.threads.com/@molly1217lin"},
+    //     "備註": ""
+    // }
+    ]
+
+
+      // 救災區域邊界
+      const disasterArea = [
+        [23.7280, 121.3300], // 馬太鞍溪上游
+        [23.7100, 121.3600], // 中段
+        [23.6880, 121.4100], // 光復鄉核心災區
+        [23.6700, 121.4500], // 下游邊界
+        [23.6300, 121.4200], // 南側村里
+        [23.6400, 121.3900], // 西側邊緣
+        [23.7280, 121.3300], // 回到起點
+      ];
+
+      // 地圖變數
+      let map;
+      let accommodationMarkers = [];
+      let waterStationMarkers = [];
+      let restroomMarkers = [];
+      let showerStationMarkers = [];
+      let medicalStationMarkers = [];
+      let shuttlePolylines = [];
+      
+      // 全局數據存儲
+      let currentAccommodationData = [];
+      let currentWaterStationData = [];
+      let currentRestroomData = [];
+      let currentShowerStationData = [];
+      let currentMedicalStationData = [];
+      let disasterPolygon;
+      let userLocationMarker = null;
+      let isLocationVisible = false;
+      let hasLocationPermission = false;
+      let userPosition = null;
+      let watchId = null; // 位置追蹤ID
+      let isWatchingPosition = false; // 是否正在追蹤位置
+
+      // 載入並初始化地圖資料
+      async function loadMapData() {
+        console.log('=== 開始載入地圖資料 ===');
+        try {
+          // 並行加載所有數據
+          const [accommodationData, waterStationData, restroomData, showerStationData, medicalStationData] = await Promise.all([
+            getAccommodationList(),
+            getWaterRefillStationList(),
+            getRestroomsList(), 
+            getShowerStationList(),
+            getMedicalStationList()
+          ]);
+          
+          // 處理住宿點數據
+          if (accommodationData && accommodationData.member && accommodationData.member.length > 0) {
+            currentAccommodationData = accommodationData.member;
+            console.log(`成功獲取 ${currentAccommodationData.length} 筆住宿點資料`);
+            addAccommodationMarkers(currentAccommodationData);
+            updateAccommodationList(currentAccommodationData);
+            showToast(`成功載入 ${currentAccommodationData.length} 筆住宿點資料`, 'success');
+          } else {
+            showToast('住宿點資料為空', 'warning');
+          }
+
+          // 處理加水站數據
+          console.log('原始加水站數據:', waterStationData);
+          if (waterStationData) {
+            if (waterStationData.member && waterStationData.member.length > 0) {
+              currentWaterStationData = waterStationData.member;
+            } else if (Array.isArray(waterStationData) && waterStationData.length > 0) {
+              currentWaterStationData = waterStationData;
+            } else {
+              currentWaterStationData = [];
+            }
+            
+            if (currentWaterStationData.length > 0) {
+              console.log(`成功獲取 ${currentWaterStationData.length} 筆加水站資料`);
+              addWaterStationMarkers(currentWaterStationData);
+              updateWaterStationList(currentWaterStationData);
+              showToast(`成功載入 ${currentWaterStationData.length} 筆加水站資料`, 'success');
+            } else {
+              console.log('加水站資料為空');
+              showToast('加水站資料為空', 'warning');
+            }
+          }
+
+          // 處理廁所數據
+          console.log('原始廁所數據:', restroomData);
+          if (restroomData) {
+            if (restroomData.member && restroomData.member.length > 0) {
+              currentRestroomData = restroomData.member;
+            } else if (Array.isArray(restroomData) && restroomData.length > 0) {
+              currentRestroomData = restroomData;
+            } else {
+              currentRestroomData = [];
+            }
+            
+            if (currentRestroomData.length > 0) {
+              console.log(`成功獲取 ${currentRestroomData.length} 筆廁所資料`);
+              addRestroomMarkers(currentRestroomData);
+              updateRestroomList(currentRestroomData);
+              showToast(`成功載入 ${currentRestroomData.length} 筆廁所資料`, 'success');
+            } else {
+              console.log('廁所資料為空');
+              showToast('廁所資料為空', 'warning');
+            }
+          }
+ 
+          if (showerStationData) {
+            if (showerStationData.member && showerStationData.member.length > 0) {
+              currentShowerStationData = showerStationData.member;
+            } else if (Array.isArray(showerStationData) && showerStationData.length > 0) {
+              currentShowerStationData = showerStationData;
+            } else {
+              currentShowerStationData = [];
+            }
+            
+            if (currentShowerStationData.length > 0) {
+              console.log(`成功獲取 ${currentShowerStationData.length} 筆洗澡點資料`);
+              addShowerStationMarkers(currentShowerStationData);
+              updateShowerStationList(currentShowerStationData);
+              showToast(`成功載入 ${currentShowerStationData.length} 筆洗澡點資料`, 'success');
+            } else {
+              console.log('洗澡點資料為空');
+              showToast('洗澡點資料為空', 'warning');
+            }
+          }
+
+          // 處理醫療站數據
+          console.log('原始醫療站數據:', medicalStationData);
+          if (medicalStationData) {
+            if (medicalStationData.member && medicalStationData.member.length > 0) {
+              currentMedicalStationData = medicalStationData.member;
+            } else if (Array.isArray(medicalStationData) && medicalStationData.length > 0) {
+              currentMedicalStationData = medicalStationData;
+            } else {
+              currentMedicalStationData = [];
+            }
+            
+            if (currentMedicalStationData.length > 0) {
+              console.log(`成功獲取 ${currentMedicalStationData.length} 筆醫療站資料`);
+              addMedicalStationMarkers(currentMedicalStationData);
+              updateMedicalStationList(currentMedicalStationData);
+              showToast(`成功載入 ${currentMedicalStationData.length} 筆醫療站資料`, 'success');
+            } else {
+              console.log('醫療站資料為空');
+              showToast('醫療站資料為空', 'warning');
+            }
+          }
+
+          // 更新統計資訊
+          updateStatistics(currentAccommodationData, shuttleRoutes, currentWaterStationData, currentRestroomData, currentShowerStationData, currentMedicalStationData);
+          
+          // 更新所有設施的簡要視圖
+          updateAllSectionsView();
+
+        } catch (error) {
+          console.error('載入地圖資料失敗:', error);
+          showToast('載入地圖資料失敗', 'error');
+        }
+        console.log('=== 地圖資料載入完成 ===');
+      }
+
+      // 顯示通知
+      function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        toastMessage.textContent = message;
+        toast.className = `fixed bottom-5 right-5 py-3 px-6 rounded-lg shadow-lg transition-all duration-300 ${
+          type === 'success' ? 'bg-green-600' : 
+          type === 'error' ? 'bg-red-600' : 
+          type === 'warning' ? 'bg-yellow-600' : 'bg-gray-800'
+        } text-white opacity-100 translate-y-0`;
+        
+        setTimeout(() => {
+          toast.className = toast.className.replace('opacity-100 translate-y-0', 'opacity-0 translate-y-10');
+        }, 3000);
+      }
+
+      // 初始化地圖
+      function initMap() {
+        // 創建地圖，中心點設在光復鄉
+        map = L.map('map', {
+          zoomControl: false, // 移除預設的縮放控制
+          attributionControl: false // 移除版權資訊
+        }).setView([23.6628, 121.4225], 11);
+
+        // 創建自定義圖層窗格以控制疊放順序
+        // 預設 overlayPane z-index 是 400
+        map.createPane('disasterPane');
+        map.getPane('disasterPane').style.zIndex = 410; // 災害區域放在較低層
+        
+        map.createPane('shuttlePane');
+        map.getPane('shuttlePane').style.zIndex = 420; // 接駁路線放在較高層
+
+        // 添加自定義縮放控制到右上角
+        L.control.zoom({
+          position: 'topright'
+        }).addTo(map);
+
+        // 添加地圖圖層
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 添加光復火車站標記
+        const stationIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background-color: #3b82f6; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚂</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+        
+        L.marker([guangfuStation.lat, guangfuStation.lng], { icon: stationIcon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="p-2">
+              <h3 class="font-bold text-lg whitespace-nowrap">${guangfuStation.name}</h3>
+              <p class="text-sm text-gray-600">主要下車點</p> 
+            </div>
+          `);
+ 
+
+        // 添加接駁路線
+        // addShuttleRoutes();
+
+        // 添加救災區域
+        addDisasterArea();
+      }
+
+      // render 聯絡資訊
+      function renderContact(contact) {
+            if (typeof contact !== 'object' || contact === null) {
+            return contact || ''; // 如果不是物件，直接回傳
+            }
+
+            const type = contact.type;
+            const value = contact.value;
+            const url = contact.url;
+
+            switch (type) {
+            case 'phone':
+                const tel = `+886${value.slice(1)}`;
+                return `<a href="tel:${tel}" class="text-blue-600 hover:underline">${value}</a>`;
+            case 'facebook':
+            case 'line':
+                return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${value}</a>`;
+            case 'text':
+            default:
+                return value;
+            }
+        }
+
+      // 格式化性別時段顯示
+      function formatGenderSchedule(schedule) {
+        if (!schedule) return '';
+        
+        if (typeof schedule === 'string') {
+          return schedule;
+        }
+        
+        if (typeof schedule === 'object') {
+          const parts = [];
+          
+          if (schedule.male && Array.isArray(schedule.male) && schedule.male.length > 0) {
+            parts.push(`<span class="text-blue-600">男性:</span> ${schedule.male.join('、')}`);
+          }
+          
+          if (schedule.female && Array.isArray(schedule.female) && schedule.female.length > 0) {
+            parts.push(`<span class="text-pink-600">女性:</span> ${schedule.female.join('、')}`);
+          }
+          
+          return parts.join('<br>');
+        }
+        
+        return JSON.stringify(schedule);
+      }
+
+      // 添加住宿點標記
+      function addAccommodationMarkers(accommodations) {
+        if (!accommodations) return;
+        accommodationMarkers.forEach(marker => map.removeLayer(marker));
+        accommodationMarkers = [];
+ 
+
+        accommodations.forEach(accommodation => {
+          let lat, lng;
+ 
+          if (accommodation.coordinates && typeof accommodation.coordinates.lat === 'number' && typeof accommodation.coordinates.lng === 'number') {
+            lat = accommodation.coordinates.lat;
+            lng = accommodation.coordinates.lng;
+          } 
+
+          // 確保我們有有效的座標
+          if (isNaN(lat) || isNaN(lng)) {
+            console.warn(`住宿點 "${accommodation.name || accommodation.民宿名稱}" 缺少有效的座標無法標記。`);
+            return; // 跳過此標記
+          }
+
+          const hasVacancy = accommodation.has_vacancy ?? (accommodation.availability || accommodation.尚有空房);
+          const color = getStatusColor(hasVacancy);
+          const icon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: ${color}; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🏠</div>`,
+            iconSize: [25, 25],
+            iconAnchor: [12.5, 12.5]
+          });
+
+          const marker = L.marker([lat, lng], { icon })
+            .addTo(map)
+            .bindPopup(`
+              <div class="max-w-xs">
+                <h3 class="font-bold text-lg mb-2">${accommodation.name || accommodation.民宿名稱}</h3>
+                <div class="space-y-1 text-sm">
+                  <div><span class="font-semibold">地址:</span> ${accommodation.address || accommodation.地址 || '未提供'}</div>
+                  <div><span class="font-semibold">聯絡:</span> ${renderContact(accommodation.contact_info || accommodation['聯繫方式'])}</div>
+                  ${(accommodation.pricing || accommodation.費用 || accommodation.cost) ? `<div><span class="font-semibold">費用:</span> ${accommodation.pricing || accommodation.費用 || accommodation.cost}</div>` : ''}
+                  ${(accommodation.notes || accommodation['時間、房型']) ? `<div><span class="font-semibold">備註:</span> ${accommodation.notes || accommodation['時間、房型']}</div>` : ''}
+                  ${(accommodation.source_link || accommodation.資料來源) ? `<div><span class="font-semibold">資料來源:</span> <a href="${accommodation.source_link}" target="_blank" rel="noopener noreferrer">${accommodation.source_link || '連結'}</a></div>` : ''}
+                  ${(accommodation.last_updated) ? `<div><span class="font-semibold">最後更新:</span> ${accommodation.last_updated}</div>` : ''}
+                </div>
+              </div>
+            `);
+
+          // Attach original data to the marker for later use
+          marker.accommodationData = accommodation;
+          accommodationMarkers.push(marker);
+        });
+ 
+      }
+
+      // 添加加水站標記
+      function addWaterStationMarkers(waterStations) {
+        if (!waterStations) return;
+        waterStationMarkers.forEach(marker => map.removeLayer(marker));
+        waterStationMarkers = [];
+ 
+
+        waterStations.forEach(station => {
+          let lat, lng;
+          if (station.coordinates) {
+            lat = station.coordinates.lat;
+            lng = station.coordinates.lng;
+          } else if (station.lat && station.lng) {
+            lat = parseFloat(station.lat);
+            lng = parseFloat(station.lng);
+          }
+
+          if (isNaN(lat) || isNaN(lng)) {
+            console.warn(`加水站 "${station.name}" 缺少有效的座標無法標記。`);
+            return;
+          }
+
+          const icon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: #06b6d4; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">💧</div>`,
+            iconSize: [25, 25],
+            iconAnchor: [12.5, 12.5]
+          });
+
+          const marker = L.marker([lat, lng], { icon })
+            .addTo(map)
+            .bindPopup(`
+              <div class="max-w-xs">
+                <h3 class="font-bold text-lg mb-2">${station.name || "-"}</h3>
+                <div class="space-y-1 text-sm">
+                  <div><span class="font-semibold">地址:</span> ${station.address || '-'}</div>
+                  ${station.opening_hours ? `<div><span class="font-semibold">開放時間:</span> ${station.opening_hours || "-"}</div>` : ''}
+                  ${station.contact ? `<div><span class="font-semibold">聯絡:</span> ${station.contact || "-"}</div>` : ''}
+                  ${station.notes ? `<div><span class="font-semibold">備註:</span> ${station.notes || "-"}</div>` : ''}
+                  ${station.is_free ? `<div><span class="font-semibold">是否免費:</span> ${station.is_free ? "是" : "否"}</div>` : ''}
+                </div>
+              </div>
+            `);
+
+          marker.stationData = station;
+          waterStationMarkers.push(marker);
+        });
+      }
+
+      // 添加廁所標記
+      function addRestroomMarkers(restrooms) {
+        if (!restrooms) return;
+        restroomMarkers.forEach(marker => map.removeLayer(marker));
+        restroomMarkers = [];
+
+        restrooms.forEach(restroom => {
+          let lat, lng;
+          if (restroom.coordinates) {
+            lat = restroom.coordinates.lat;
+            lng = restroom.coordinates.lng;
+          } else if (restroom.lat && restroom.lng) {
+            lat = parseFloat(restroom.lat);
+            lng = parseFloat(restroom.lng);
+          }
+
+          if (isNaN(lat) || isNaN(lng)) {
+            console.warn(`廁所 "${restroom.name}" 缺少有效的座標無法標記。`);
+            return;
+          }
+
+          const icon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: #8b5cf6; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚻</div>`,
+            iconSize: [25, 25],
+            iconAnchor: [12.5, 12.5]
+          });
+
+          const marker = L.marker([lat, lng], { icon })
+            .addTo(map)
+            .bindPopup(`
+              <div class="max-w-xs">
+                <h3 class="font-bold text-lg mb-2">${restroom.name}</h3>
+                <div class="space-y-1 text-sm">
+                  <div><span class="font-semibold">地址:</span> ${restroom.address || '未提供'}</div>
+                  ${restroom.hours ? `<div><span class="font-semibold">開放時間:</span> ${restroom.hours}</div>` : ''}
+                  ${restroom.facilities ? `<div><span class="font-semibold">設施:</span> ${restroom.facilities}</div>` : ''}
+                  ${restroom.notes ? `<div><span class="font-semibold">備註:</span> ${restroom.notes}</div>` : ''}
+                </div>
+              </div>
+            `);
+
+          marker.restroomData = restroom;
+          restroomMarkers.push(marker);
+        });
+      }
+
+      // 添加洗澡點標記
+      function addShowerStationMarkers(showerStations) {
+        if (!showerStations) return;
+        showerStationMarkers.forEach(marker => map.removeLayer(marker));
+        showerStationMarkers = [];
+
+        showerStations.forEach(station => {
+          let lat, lng;
+          if (station.coordinates) {
+            lat = station.coordinates.lat;
+            lng = station.coordinates.lng;
+          } else if (station.lat && station.lng) {
+            lat = parseFloat(station.lat);
+            lng = parseFloat(station.lng);
+          }
+
+          if (isNaN(lat) || isNaN(lng)) {
+            console.warn(`洗澡點 "${station.name}" 缺少有效的座標無法標記。`);
+            return;
+          }
+
+          const icon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: #f59e0b; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚿</div>`,
+            iconSize: [25, 25],
+            iconAnchor: [12.5, 12.5]
+          });
+
+          const marker = L.marker([lat, lng], { icon })
+            .addTo(map)
+            .bindPopup(`
+              <div class="max-w-xs">
+                <h3 class="font-bold text-lg mb-2">${station.name}</h3>
+                <div class="space-y-1 text-sm">
+                  <div><span class="font-semibold">地址:</span> ${station.address || '未提供'}</div>
+                  ${station.facility_type ? `<div><span class="font-semibold">設施類型:</span> ${station.facility_type}</div>` : ''}
+                  ${station.time_slots ? `<div><span class="font-semibold">開放時段:</span> ${station.time_slots}</div>` : ''}
+                  ${station.gender_schedule ? `<div><span class="font-semibold">性別時段:</span><br>${formatGenderSchedule(station.gender_schedule)}</div>` : ''}
+                  ${station.capacity ? `<div><span class="font-semibold">容納人數:</span> ${station.capacity}人</div>` : ''}
+                  ${station.is_free !== undefined ? `<div><span class="font-semibold">是否免費:</span> ${station.is_free ? "是" : "否"}</div>` : ''}
+                  ${station.pricing ? `<div><span class="font-semibold">費用說明:</span> ${station.pricing}</div>` : ''}
+                  ${station.facilities && Array.isArray(station.facilities) ? `<div><span class="font-semibold">額外設施:</span> ${station.facilities.join(', ')}</div>` : ''}
+                  ${station.requires_appointment !== undefined ? `<div><span class="font-semibold">是否需預約:</span> ${station.requires_appointment ? "是" : "否"}</div>` : ''}
+                  ${station.contact_method ? `<div><span class="font-semibold">聯絡方式:</span> ${station.contact_method}</div>` : ''}
+                  ${station.notes ? `<div><span class="font-semibold">備註:</span> ${station.notes}</div>` : ''}
+                  ${station.distance_to_guangfu ? `<div><span class="font-semibold">距光復:</span> ${station.distance_to_guangfu}</div>` : ''}
+                </div>
+              </div>
+            `);
+
+          marker.showerStationData = station;
+          showerStationMarkers.push(marker);
+        });
+      }
+
+      // 添加醫療站標記
+      function addMedicalStationMarkers(medicalStations) {
+        if (!medicalStations) return;
+        medicalStationMarkers.forEach(marker => map.removeLayer(marker));
+        medicalStationMarkers = [];
+
+        medicalStations.forEach(station => {
+          let lat, lng;
+          if (station.coordinates) {
+            lat = station.coordinates.lat;
+            lng = station.coordinates.lng;
+          } else if (station.lat && station.lng) {
+            lat = parseFloat(station.lat);
+            lng = parseFloat(station.lng);
+          }
+
+          if (isNaN(lat) || isNaN(lng)) {
+            console.warn(`醫療站 "${station.name}" 缺少有效的座標無法標記。`);
+            return;
+          }
+
+          const icon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: #ef4444; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🏥</div>`,
+            iconSize: [25, 25],
+            iconAnchor: [12.5, 12.5]
+          });
+
+          const marker = L.marker([lat, lng], { icon })
+            .addTo(map)
+            .bindPopup(`
+              <div class="max-w-xs">
+                <h3 class="font-bold text-lg mb-2">${station.name}</h3>
+                <div class="space-y-1 text-sm">
+                  <div><span class="font-semibold">地址:</span> ${station.detailed_address || '未提供'}</div> 
+                  ${!!(station.services.join("")) ? `<div><span class="font-semibold">服務項目:</span> ${station.services.join(", \r\n")}</div>` : ''}
+                  ${station.contact_person ? `<div><span class="font-semibold">聯絡:</span> ${station.contact_person}</div>` : ''}
+                  ${station.phone ? `<div><span class="font-semibold">聯絡:</span> ${station.phone}</div>` : ''}
+                  ${station.notes ? `<div><span class="font-semibold">備註:</span> ${station.notes}</div>` : ''}
+                </div>
+              </div>
+            `);
+
+          marker.stationData = station;
+          medicalStationMarkers.push(marker);
+        });
+      }
+
+      // 添加接駁路線
+    //   function addShuttleRoutes() {
+    //     shuttlePolylines.forEach(p => map.removeLayer(p));
+    //     shuttlePolylines = [];
+
+    //     shuttleRoutes.forEach(routeInfo => {
+    //       const polyline = L.polyline(routeInfo.route, {
+    //         color: '#8b5cf6',
+    //         weight: 4,
+    //         opacity: 0.8,
+    //         dashArray: '10, 5',
+    //         pane: 'shuttlePane' // 指定窗格
+    //       }).addTo(map);
+
+    //       polyline.bindPopup(`
+    //         <div class="p-2 max-w-xs">
+    //           <h3 class="font-bold text-lg mb-2">接駁路線</h3>
+    //           <div class="space-y-1 text-sm">
+    //             <div><span class="font-semibold">出發點:</span> ${routeInfo.出發地點}</div>
+    //             <div><span class="font-semibold">目的地:</span> ${routeInfo.目的地}</div>
+    //             <div><span class="font-semibold">出發時間:</span> ${routeInfo.出發時間}</div>
+    //             ${routeInfo.聯絡人 && routeInfo.聯絡人.text ? `<div><span class="font-semibold">聯絡人:</span> <a href="${routeInfo.聯絡人.url}" target="_blank" class="text-blue-600 hover:underline">${routeInfo.聯絡人.text}</a></div>` : ''}
+    //             ${routeInfo.備註 ? `<div><span class="font-semibold">備註:</span> ${routeInfo.備註.replace(/\r\n/g, '<br>')}</div>` : ''}
+    //           </div>
+    //         </div>
+    //       `);
+    //       shuttlePolylines.push(polyline);
+    //     });
+    //   }
+
+      // 添加救災區域
+      function addDisasterArea() {
+        if (disasterPolygon) map.removeLayer(disasterPolygon);
+        
+        disasterPolygon = L.polygon(disasterArea, {
+          color: '#ec4899',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#ec4899',
+          fillOpacity: 0.2,
+          pane: 'disasterPane' // 指定窗格
+        }).addTo(map);
+
+        disasterPolygon.bindPopup(`
+          <div class="p-2">
+            <h3 class="font-bold">救災區域範圍</h3>
+            <p class="text-sm">主要災害影響區域</p>
+            <p class="text-sm text-gray-600">請注意安全</p>
+          </div>
+        `);
+      }
+
+      // 獲取狀態顏色
+      function getStatusColor(hasVacancy) {
+        if (typeof hasVacancy === 'boolean') {
+          return hasVacancy ? '#10b981' : '#ef4444'; // Green for true, Red for false
+        }
+        // Fallback for string-based availability
+        if (typeof hasVacancy === 'string') {
+          const lowerAvailability = hasVacancy.toLowerCase();
+          if (lowerAvailability.includes('有')) return '#10b981'; // Green for "Available"
+          if (lowerAvailability.includes('滿') || lowerAvailability.includes('無')) return '#ef4444'; // Red for "Full" or "None"
+          if (lowerAvailability.includes('未知')) return '#f59e0b'; // Amber for "Unknown"
+        }
+        return '#6b7280'; // Default gray for undefined or other cases
+      }
+
+      // 更新統計資訊
+      function updateStatistics(accommodations, shuttleRoutes, waterStations, restrooms, showerStations, medicalStations) {
+        if (accommodations) {
+          const total = accommodations.length;
+          document.getElementById('totalAccommodations').textContent = total;
+        }
+        if (waterStations) {
+          document.getElementById('totalWaterStations').textContent = waterStations.length;
+        }
+        if (restrooms) {
+          document.getElementById('totalRestrooms').textContent = restrooms.length;
+        }
+        if (showerStations) {
+          document.getElementById('totalShowerStations').textContent = showerStations.length;
+        }
+        if (medicalStations) {
+          document.getElementById('totalMedicalStations').textContent = medicalStations.length;
+        }
+        // if (shuttleRoutes) {
+        //   const totalRoutes = shuttleRoutes.length;
+        //   document.getElementById('totalShuttleRoutes').textContent = totalRoutes;
+        // }
+      }
+
+      // 更新住宿點列表
+      function updateAccommodationList(accommodations) {
+        const container = document.getElementById('accommodationList');
+        container.innerHTML = '';
+        if (!accommodations) return;
+
+        accommodations.forEach(accommodation => {
+          const hasVacancy = accommodation.has_vacancy ?? (accommodation.availability || accommodation.尚有空房);
+          const color = getStatusColor(hasVacancy);
+          
+          let lat, lng; 
+          if (accommodation.coordinates) {
+            lat = accommodation.coordinates.lat;
+            lng = accommodation.coordinates.lng;
+          } else return;
+
+          const googleMapsUrl = (lat && !isNaN(lat) && lng && !isNaN(lng)) ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '#';
+          const accommodationName = accommodation.name || '-';
+          const accommodationAddress = accommodation.address || '-';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${accommodationName}</h4>
+                <p class="text-sm text-gray-600 truncate">${accommodationAddress}</p>
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a> 
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.closest('a')) return; // Do not trigger if clicking the link
+
+            const marker = accommodationMarkers.find(m => m.accommodationData === accommodation);
+            if (marker) {
+              map.flyTo(marker.getLatLng(), 15);
+              marker.openPopup();
+              if (window.innerWidth <= 768) {
+                closeInfoSidebar();
+              }
+            }
+          });
+          container.appendChild(element);
+        });
+      }
+
+      // 更新加水站列表
+      function updateWaterStationList(waterStations) {
+        const container = document.getElementById('waterStationList');
+        container.innerHTML = '';
+        if (!waterStations) return;
+
+        waterStations.forEach(station => {
+          let lat, lng;
+          if (station.coordinates) {
+            lat = station.coordinates.lat;
+            lng = station.coordinates.lng;
+          } else if (station.lat && station.lng) {
+            lat = parseFloat(station.lat);
+            lng = parseFloat(station.lng);
+          }
+
+          const googleMapsUrl = (lat && !isNaN(lat) && lng && !isNaN(lng)) ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '#';
+          const stationName = station.name || '未知加水站';
+          const stationAddress = station.address || '未提供地址';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${stationName}</h4>
+                <p class="text-sm text-gray-600 truncate">${stationAddress}</p>
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a>
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.closest('a')) return;
+            const marker = waterStationMarkers.find(m => m.stationData === station);
+            if (marker) {
+              map.flyTo(marker.getLatLng(), 15);
+              marker.openPopup();
+              if (window.innerWidth <= 768) {
+                closeInfoSidebar();
+              }
+            }
+          });
+          container.appendChild(element);
+        });
+      }
+
+      // 更新廁所列表
+      function updateRestroomList(restrooms) {
+        const container = document.getElementById('restroomList');
+        container.innerHTML = '';
+        if (!restrooms) return;
+
+        restrooms.forEach(restroom => {
+          let lat, lng;
+          if (restroom.coordinates) {
+            lat = restroom.coordinates.lat;
+            lng = restroom.coordinates.lng;
+          } else if (restroom.lat && restroom.lng) {
+            lat = parseFloat(restroom.lat);
+            lng = parseFloat(restroom.lng);
+          }
+
+          const googleMapsUrl = (lat && !isNaN(lat) && lng && !isNaN(lng)) ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '#';
+          const restroomName = restroom.name || '未知廁所';
+          const restroomAddress = restroom.address || '未提供地址';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${restroomName}</h4>
+                <p class="text-sm text-gray-600 truncate">${restroomAddress}</p>
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a>
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.closest('a')) return;
+            const marker = restroomMarkers.find(m => m.restroomData === restroom);
+            if (marker) {
+              map.flyTo(marker.getLatLng(), 15);
+              marker.openPopup();
+              if (window.innerWidth <= 768) {
+                closeInfoSidebar();
+              }
+            }
+          });
+          container.appendChild(element);
+        });
+      }
+
+      // 更新洗澡點列表
+      function updateShowerStationList(showerStations) {
+        const container = document.getElementById('showerStationList');
+        container.innerHTML = '';
+        if (!showerStations) return;
+
+        showerStations.forEach(station => {
+          let lat, lng;
+          if (station.coordinates) {
+            lat = station.coordinates.lat;
+            lng = station.coordinates.lng;
+          } else if (station.lat && station.lng) {
+            lat = parseFloat(station.lat);
+            lng = parseFloat(station.lng);
+          }
+
+          const googleMapsUrl = (lat && !isNaN(lat) && lng && !isNaN(lng)) ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '#';
+          const stationName = station.name || '未知洗澡點';
+          const stationAddress = station.address || '未提供地址';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${stationName}</h4>
+                <p class="text-sm text-gray-600 truncate">${stationAddress}</p>
+                ${station.facility_type ? `<p class="text-xs text-gray-500 mt-1">類型: ${station.facility_type}</p>` : ''}
+                ${station.time_slots ? `<p class="text-xs text-gray-500">時段: ${station.time_slots}</p>` : ''}
+                ${station.capacity ? `<p class="text-xs text-gray-500">容納: ${station.capacity}人</p>` : ''}
+                ${station.is_free !== undefined ? `<p class="text-xs ${station.is_free ? 'text-green-600' : 'text-orange-600'}">${station.is_free ? '免費' : '收費'}</p>` : ''}
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a>
+            </div>
+          `;
+          
+          element.addEventListener('click', (e) => {
+            if (e.target.closest('a')) return; // Do not trigger if clicking the link
+            
+            const marker = showerStationMarkers.find(m => m.showerStationData === station);
+            if (marker) {
+              map.flyTo(marker.getLatLng(), 15);
+              marker.openPopup();
+              if (window.innerWidth <= 768) {
+                closeInfoSidebar();
+              }
+            }
+          });
+          container.appendChild(element);
+        });
+      }
+
+      // 更新醫療站列表
+      function updateMedicalStationList(medicalStations) {
+        const container = document.getElementById('medicalStationList');
+        container.innerHTML = '';
+        if (!medicalStations) return;
+
+        medicalStations.forEach(station => {
+          let lat, lng;
+          if (station.coordinates) {
+            lat = station.coordinates.lat;
+            lng = station.coordinates.lng;
+          } else if (station.lat && station.lng) {
+            lat = parseFloat(station.lat);
+            lng = parseFloat(station.lng);
+          }
+
+          if (isNaN(lat) || isNaN(lng)) {
+            console.warn(`醫療站 "${station.name}" 缺少有效的座標無法在列表中顯示。`);
+            return;
+          }
+
+          const googleMapsUrl = (lat && !isNaN(lat) && lng && !isNaN(lng)) ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '#';
+          const stationName = station.name || '未知醫療站';
+          const stationAddress = station.detailed_address || '未提供地址';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${stationName}</h4>
+                <p class="text-sm text-gray-600 truncate">${stationAddress}</p>
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a>
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.closest('a')) return;
+            const marker = medicalStationMarkers.find(m => m.stationData === station);
+            if (marker) {
+              map.flyTo(marker.getLatLng(), 15);
+              marker.openPopup();
+              if (window.innerWidth <= 768) {
+                closeInfoSidebar();
+              }
+            }
+          });
+          container.appendChild(element);
+        });
+      }
+
+      // 更新列表顯示（根據當前選擇的分類）
+      function updateListDisplay(layerType) {
+        const sections = ['accommodationSection', 'waterStationSection', 'restroomSection', 'showerStationSection', 'medicalStationSection', 'allSections'];
+        
+        // 隱藏所有部分
+        sections.forEach(sectionId => {
+          const section = document.getElementById(sectionId);
+          if (section) section.style.display = 'none';
+        });
+
+        // 顯示對應的部分
+        switch (layerType) {
+          case 'accommodation':
+            document.getElementById('accommodationSection').style.display = 'block';
+            break;
+          case 'waterStation':
+            document.getElementById('waterStationSection').style.display = 'block';
+            break;
+          case 'restroom':
+            document.getElementById('restroomSection').style.display = 'block';
+            break;
+          case 'showerStation':
+            document.getElementById('showerStationSection').style.display = 'block';
+            break;
+          case 'medicalStation':
+            document.getElementById('medicalStationSection').style.display = 'block';
+            break;
+          case 'all':
+          default:
+            document.getElementById('allSections').style.display = 'block';
+            updateAllSectionsView(); // 更新所有設施的簡要視圖
+            break;
+        }
+      }
+
+      // 更新所有設施的完整視圖
+      function updateAllSectionsView() {
+        console.log('=== 更新所有設施視圖 ===');
+        console.log('currentAccommodationData:', currentAccommodationData ? currentAccommodationData.length : 'null');
+        console.log('currentWaterStationData:', currentWaterStationData ? currentWaterStationData.length : 'null');
+        console.log('currentRestroomData:', currentRestroomData ? currentRestroomData.length : 'null');
+        console.log('currentShowerStationData:', currentShowerStationData ? currentShowerStationData.length : 'null');
+        console.log('currentMedicalStationData:', currentMedicalStationData ? currentMedicalStationData.length : 'null');
+        
+        // 更新住宿點完整列表
+        updateAllAccommodationSection();
+        
+        // 更新加水站完整列表
+        updateAllWaterStationSection();
+        
+        // 更新廁所完整列表
+        updateAllRestroomSection();
+        
+        // 更新洗澡點完整列表
+        updateAllShowerStationSection();
+        
+        // 更新醫療站完整列表
+        updateAllMedicalStationSection();
+        
+        console.log('=== 所有設施視圖更新完成 ===');
+      }
+
+      // 更新住宿點部分
+      function updateAllAccommodationSection() {
+        const container = document.getElementById('allAccommodationContent');
+        const countElement = document.getElementById('allAccommodationCount');
+        
+        container.innerHTML = '';
+        if (!currentAccommodationData || currentAccommodationData.length === 0) {
+          container.innerHTML = '<div class="text-sm text-gray-400">暫無數據</div>';
+          countElement.textContent = '(0)';
+          return;
+        }
+
+        countElement.textContent = `(${currentAccommodationData.length})`;
+        
+        currentAccommodationData.forEach(accommodation => {
+          const hasVacancy = accommodation.has_vacancy ?? (accommodation.availability || accommodation.尚有空房);
+          const color = getStatusColor(hasVacancy);
+          
+          let lat, lng; 
+          if (accommodation.coordinates) {
+            lat = accommodation.coordinates.lat;
+            lng = accommodation.coordinates.lng;
+          } else return;
+
+          const googleMapsUrl = (lat && !isNaN(lat) && lng && !isNaN(lng)) ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '#';
+          const accommodationName = accommodation.name || '-';
+          const accommodationAddress = accommodation.address || '-';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${accommodationName}</h4>
+                <p class="text-sm text-gray-600 truncate">${accommodationAddress}</p>
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a> 
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'A') {
+              const marker = accommodationMarkers.find(m => m.accommodationData === accommodation);
+              if (marker) {
+                map.flyTo(marker.getLatLng(), 15);
+                marker.openPopup();
+              }
+            }
+          });
+
+          container.appendChild(element);
+        });
+      }
+
+      // 更新加水站部分
+      function updateAllWaterStationSection() {
+        console.log('=== 更新加水站部分 ===');
+        const container = document.getElementById('allWaterStationContent');
+        const countElement = document.getElementById('allWaterStationCount');
+         
+        
+        container.innerHTML = '';
+        if (!currentWaterStationData || currentWaterStationData.length === 0) {
+          console.log('加水站數據為空');
+          container.innerHTML = '<div class="text-sm text-gray-400">暫無數據</div>';
+          countElement.textContent = '(0)';
+          return;
+        }
+
+        countElement.textContent = `(${currentWaterStationData.length})`; 
+ 
+        currentWaterStationData.forEach(station => {
+          const lat = station?.coordinates?.lat;
+          const lng = station?.coordinates?.lng;
+          if (!lat || !lng) return;
+
+          const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+          const stationName = station.name || '未知加水站';
+          const stationAddress = station.address || '-';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${stationName}</h4>
+                <p class="text-sm text-gray-600 truncate">${stationAddress}</p>
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a>
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'A') {
+              const marker = waterStationMarkers.find(m => m.stationData === station);
+              if (marker) {
+                map.flyTo(marker.getLatLng(), 15);
+                marker.openPopup();
+              }
+            }
+          });
+
+          container.appendChild(element);
+        });
+ 
+      }
+
+      // 更新廁所部分
+      function updateAllRestroomSection() {
+        const container = document.getElementById('allRestroomContent');
+        const countElement = document.getElementById('allRestroomCount');
+        
+        container.innerHTML = '';
+        if (!currentRestroomData || currentRestroomData.length === 0) {
+          container.innerHTML = '<div class="text-sm text-gray-400">暫無數據</div>';
+          countElement.textContent = '(0)';
+          return;
+        }
+
+        countElement.textContent = `(${currentRestroomData.length})`;
+
+        currentRestroomData.forEach(restroom => {
+          const lat = restroom?.coordinates?.lat;
+          const lng = restroom?.coordinates?.lng;
+          if (!lat || !lng) return;
+
+          const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+          const restroomName = restroom.name || '未知廁所';
+          const restroomAddress = restroom.address || '-';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${restroomName}</h4>
+                <p class="text-sm text-gray-600 truncate">${restroomAddress}</p>
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a>
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'A') {
+              const marker = restroomMarkers.find(m => m.restroomData === restroom);
+              if (marker) {
+                map.flyTo(marker.getLatLng(), 15);
+                marker.openPopup();
+              }
+            }
+          });
+
+          container.appendChild(element);
+        });
+      }
+
+      // 更新洗澡點部分
+      function updateAllShowerStationSection() {
+        const container = document.getElementById('allShowerStationContent');
+        const countElement = document.getElementById('allShowerStationCount');
+        
+        container.innerHTML = '';
+        if (!currentShowerStationData || currentShowerStationData.length === 0) {
+          container.innerHTML = '<div class="text-sm text-gray-400">暫無數據</div>';
+          countElement.textContent = '(0)';
+          return;
+        }
+
+        countElement.textContent = `(${currentShowerStationData.length})`;
+
+        currentShowerStationData.forEach(station => {
+          let lat, lng;
+          if (station.coordinates) {
+            lat = station.coordinates.lat;
+            lng = station.coordinates.lng;
+          } else if (station.lat && station.lng) {
+            lat = parseFloat(station.lat);
+            lng = parseFloat(station.lng);
+          }
+
+          const googleMapsUrl = (lat && !isNaN(lat) && lng && !isNaN(lng)) ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '#';
+          const stationName = station.name || '未知洗澡點';
+          const stationAddress = station.address || '-';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${stationName}</h4>
+                <p class="text-sm text-gray-600 truncate">${stationAddress}</p>
+                ${station.facility_type ? `<p class="text-xs text-gray-500">類型: ${station.facility_type}</p>` : ''}
+                ${station.is_free !== undefined ? `<p class="text-xs ${station.is_free ? 'text-green-600' : 'text-orange-600'}">${station.is_free ? '免費' : '收費'}</p>` : ''}
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a>
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'A') {
+              const marker = showerStationMarkers.find(m => m.showerStationData === station);
+              if (marker) {
+                map.flyTo(marker.getLatLng(), 15);
+                marker.openPopup();
+              }
+            }
+          });
+
+          container.appendChild(element);
+        });
+      }
+
+      // 更新醫療站部分
+      function updateAllMedicalStationSection() {
+        const container = document.getElementById('allMedicalStationContent');
+        const countElement = document.getElementById('allMedicalStationCount');
+        
+        container.innerHTML = '';
+        if (!currentMedicalStationData || currentMedicalStationData.length === 0) {
+          container.innerHTML = '<div class="text-sm text-gray-400">暫無數據</div>';
+          countElement.textContent = '(0)';
+          return;
+        }
+
+        countElement.textContent = `(${currentMedicalStationData.length})`;
+
+        currentMedicalStationData.forEach(station => {
+          const lat = station?.coordinates?.lat;
+          const lng = station?.coordinates?.lng;
+          if (!lat || !lng) return;
+
+          const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+          const stationName = station.name || '未知醫療站';
+          const stationAddress = station.detailed_address || '-';
+
+          const element = document.createElement('div');
+          element.className = 'p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+          element.innerHTML = `
+            <div class="flex items-center gap-1"> 
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${stationName}</h4>
+                <p class="text-sm text-gray-600 truncate">${stationAddress}</p>
+              </div>
+              <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium" title="在 Google 地圖上查看">
+                導航
+              </a>
+            </div>
+          `;
+
+          element.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'A') {
+              const marker = medicalStationMarkers.find(m => m.stationData === station);
+              if (marker) {
+                map.flyTo(marker.getLatLng(), 15);
+                marker.openPopup();
+              }
+            }
+          });
+
+          container.appendChild(element);
+        });
+      }
+
+      // 定位到指定位置
+      function focusOnLocation(lat, lng) {
+        map.setView([lat, lng], 15);
+        showToast('已定位到指定位置', 'success');
+      }
+
+      // 獲取用戶位置（僅獲取座標，不顯示）
+      function requestUserLocation() {
+        return new Promise((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error('您的瀏覽器不支援定位功能'));
+            return;
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              userPosition = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              hasLocationPermission = true;
+              
+              // 更新按鈕樣式為有定位狀態
+              const btn = document.getElementById('locateUserBtn');
+              btn.classList.add('has-location');
+              btn.title = '定位（長按追蹤）';
+              
+              // 顯示人力請求按鈕
+              // updateLocationButtonsVisibility();
+              
+              resolve(userPosition);
+            },
+            (error) => {
+              hasLocationPermission = false;
+              
+              // 更新按鈕樣式為無定位狀態
+              const btn = document.getElementById('locateUserBtn');
+              btn.classList.remove('has-location');
+              btn.classList.remove('active');
+              
+              let message = '無法獲取您的位置';
+              console.error('地理位置錯誤:', error);
+              
+              switch (error.code) {
+                case error.PERMISSION_DENIED:
+                  message = '定位權限被拒絕，請檢查瀏覽器設置並允許位置訪問';
+                  console.error('位置權限被拒絕。可能原因：1) 用戶拒絕 2) 權限政策阻止 3) 非HTTPS環境');
+                  break;
+                case error.POSITION_UNAVAILABLE:
+                  message = '位置資訊無法使用，請確保GPS已開啟';
+                  break;
+                case error.TIMEOUT:
+                  message = '定位請求超時，請重試';
+                  break;
+                default:
+                  message = `定位錯誤 (代碼: ${error.code}): ${error.message}`;
+              }
+              reject(new Error(message));
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 300000
+            }
+          );
+        });
+      }
+
+      // 開始實時位置追蹤
+      async function startWatchingPosition(showConfirm = false) {
+        if (!navigator.geolocation || isWatchingPosition) return;
+
+        // 如果需要顯示確認對話框
+        if (showConfirm) {
+          const confirmed = await customConfirm('是否開啟實時位置追蹤？這將持續更新您在地圖上的位置。', '位置追蹤確認');
+          if (!confirmed) {
+            return;
+          }
+        }
+
+        isWatchingPosition = true;
+        
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const newPosition = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            
+            // 更新用戶位置
+            userPosition = newPosition;
+            
+            // 如果位置標記正在顯示，更新它
+            if (isLocationVisible && userLocationMarker) {
+              userLocationMarker.setLatLng([newPosition.lat, newPosition.lng]);
+            }
+            
+            console.log('位置已更新:', newPosition);
+          },
+          (error) => {
+            console.error('位置追蹤錯誤:', error);
+            stopWatchingPosition();
+            showToast('位置追蹤失敗', 'error');
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 60000 // 1分鐘內的位置數據仍有效
+          }
+        );
+        
+        showToast('已開啟實時位置追蹤', 'success');
+        
+        // 更新按鈕狀態
+        const btn = document.getElementById('locateUserBtn');
+        btn.classList.add('tracking');
+        btn.title = '停止追蹤位置（長按）';
+      }
+
+      // 停止實時位置追蹤
+      function stopWatchingPosition() {
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+          watchId = null;
+          isWatchingPosition = false;
+          
+          showToast('已停止位置追蹤', 'info');
+          
+          // 更新按鈕狀態
+          const btn = document.getElementById('locateUserBtn');
+          btn.classList.remove('tracking');
+          if (hasLocationPermission) {
+            btn.title = '定位（長按追蹤）';
+          }
+        }
+      }
+
+      // 顯示用戶位置標記
+      function showUserLocation() {
+        if (!userPosition) return;
+
+        // 移除舊的標記
+        if (userLocationMarker) {
+          map.removeLayer(userLocationMarker);
+        }
+
+        // 創建用戶位置標記
+        const userIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background-color: #ef4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">📍</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+
+        userLocationMarker = L.marker([userPosition.lat, userPosition.lng], { icon: userIcon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="p-2">
+              <h3 class="font-bold">您的位置</h3>
+              <p class="text-sm">緯度: ${userPosition.lat.toFixed(6)}</p>
+              <p class="text-sm">經度: ${userPosition.lng.toFixed(6)}</p>
+            </div>
+          `);
+
+        // 將地圖中心移動到用戶位置
+        map.setView([userPosition.lat, userPosition.lng], 13);
+        isLocationVisible = true;
+        
+        // 更新按鈕樣式
+        const btn = document.getElementById('locateUserBtn');
+        btn.classList.add('has-location');
+        btn.classList.add('active');
+        btn.title = '隱藏定位';
+        
+        // 顯示人力請求按鈕
+        // updateLocationButtonsVisibility();
+        
+        showToast('已定位到您的位置', 'success');
+      }
+
+      // 隱藏用戶位置標記
+      function hideUserLocation() {
+        if (userLocationMarker) {
+          map.removeLayer(userLocationMarker);
+          userLocationMarker = null;
+        }
+        
+        isLocationVisible = false;
+        
+        // 更新按鈕樣式
+        const btn = document.getElementById('locateUserBtn');
+        btn.classList.remove('active');
+        // 保持 has-location 狀態，因為我們仍然有位置資訊
+        btn.title = '定位';
+        
+        showToast('已隱藏位置標記', 'info');
+      }
+
+      // 切換定位顯示
+      function toggleUserLocation() {
+        if (!hasLocationPermission || !userPosition) {
+          // 沒有權限或位置資訊，嘗試獲取
+          showToast('正在獲取您的位置...', 'info');
+          requestUserLocation()
+            .then(() => {
+              showUserLocation();
+            })
+            .catch((error) => {
+              showToast(error.message, 'error');
+            });
+        } else {
+          // 有權限和位置資訊，切換顯示狀態
+          if (isLocationVisible) {
+            hideUserLocation();
+            // 如果正在追蹤位置，也停止追蹤
+            if (isWatchingPosition) {
+              stopWatchingPosition();
+            }
+          } else {
+            showUserLocation();
+          }
+        }
+      }
+
+      // 處理定位按鈕的長按事件來啟動位置追蹤
+      async function handleLocationButtonPress() {
+        if (!hasLocationPermission || !userPosition) {
+          toggleUserLocation();
+          return;
+        }
+
+        if (isWatchingPosition) {
+          // 如果正在追蹤，停止追蹤
+          stopWatchingPosition();
+        } else {
+          // 如果沒有追蹤，啟動追蹤（手動觸發時顯示確認）
+          if (!isLocationVisible) {
+            showUserLocation();
+          }
+          await startWatchingPosition(true); // 手動啟動時顯示確認對話框
+        }
+      }
+
+      // 初始化時請求定位權限
+      async function initLocationPermission() {
+        if (!navigator.geolocation) {
+          console.log('瀏覽器不支援定位功能');
+          showToast('您的瀏覽器不支援定位功能', 'warning');
+          return;
+        }
+
+        // 檢查權限狀態
+        if ('permissions' in navigator) {
+          try {
+            const permission = await navigator.permissions.query({name: 'geolocation'});
+            console.log('地理位置權限狀態:', permission.state);
+            
+            if (permission.state === 'denied') {
+              showToast('地理位置權限已被拒絕，請在瀏覽器設置中允許位置訪問', 'warning');
+              return;
+            }
+          } catch (error) {
+            console.log('無法檢查權限狀態:', error);
+          }
+        }
+
+        // 詢問用戶是否允許定位和實時追蹤
+        const confirmed = await customConfirm(
+          '此網站想要取得您的位置資訊並開啟實時位置追蹤，是否允許？\r\n這將幫助您在地圖上看到自己的位置並保持更新。',
+          '位置權限請求'
+        );
+        
+        if (confirmed) {
+          showToast('正在獲取位置權限...', 'info');
+          requestUserLocation()
+            .then((position) => {
+              showToast('已獲得定位權限，正在啟動位置追蹤...', 'success');
+              console.log('用戶位置已獲取:', position);
+              showUserLocation();
+              // 自動啟動位置追蹤
+              setTimeout(() => {
+                startWatchingPosition();
+              }, 1000); // 延遲1秒後啟動追蹤，讓用戶看到位置標記
+            })
+            .catch((error) => {
+              showToast(error.message, 'error');
+              console.log('獲取位置失敗:', error.message);
+              
+              // 提供降級指導
+              setTimeout(() => {
+                const fallbackConfirm = customConfirm(
+                  '無法自動定位。您仍可以：\r\n1. 手動點擊地圖上的位置\r\n2. 使用右上角的放大鏡搜索地點\r\n3. 檢查瀏覽器地理位置設置\r\n\r\n是否要查看使用說明？',
+                  '定位失敗'
+                );
+                
+                fallbackConfirm.then((showHelp) => {
+                  if (showHelp) {
+                    showToast('您可以直接在地圖上點擊來查看設施資訊', 'info');
+                  }
+                });
+              }, 2000);
+            });
+        } else {
+          console.log('用戶拒絕了位置權限請求');
+          showToast('您可以隨時在地圖上手動查看各項設施', 'info');
+        }
+      }
+
+      // 返回按鈕功能
+      function handleGoBack() {
+        // 檢查瀏覽器歷史記錄
+        if (history.length > 1) {
+          // 如果有上一頁，返回上一頁
+          window.history.back();
+        } else {
+          // 如果沒有上一頁，跳轉到指定網站
+          window.location.href = 'https://sites.google.com/view/guangfu250923';
+        }
+      }
+
+      // 人力請求相關函數
+      let currentUserLocation = null;
+      
+      function openHelpRequestModal() {
+        const modal = document.getElementById('helpRequestModal');
+        modal.classList.remove('hidden');
+        
+        // 如果有用戶位置，自動填入地點
+        if (userPosition) {
+          const locationInput = document.getElementById('location');
+          locationInput.value = `緯度: ${userPosition.lat.toFixed(6)}, 經度: ${userPosition.lng.toFixed(6)}`;
+          currentUserLocation = userPosition;
+        }
+      }
+      
+      function closeHelpRequestModal() {
+        const modal = document.getElementById('helpRequestModal');
+        modal.classList.add('hidden');
+        document.getElementById('helpRequestForm').reset();
+      }
+      
+      function submitHelpRequest(event) {
+        event.preventDefault();
+
+        const peopleNeeded = parseInt(document.getElementById('peopleNeeded').value, 10);
+
+        if (typeof peopleNeeded !== 'number' || isNaN(peopleNeeded) || peopleNeeded < 1) {
+          showToast('請輸入有效的人數（至少1人）', 'error');
+          return;
+        }
+        
+        const formData = {
+          peopleNeeded,
+          type: document.getElementById('requestType').value,
+          urgency: document.getElementById('urgencyLevel').value,
+          contactPerson: document.getElementById('contactPerson').value,
+          contactPhone: document.getElementById('contactPhone').value,
+          location: document.getElementById('location').value,
+          description: document.getElementById('description').value,
+          coordinates: currentUserLocation,
+          timestamp: new Date().toISOString()
+        };
+        
+        // 模擬提交請求（實際應用中應該發送到後端API）
+        console.log('提交人力請求:', formData);
+        
+        // 顯示成功消息
+        showToast('人力請求已提交，相關單位將盡快與您聯繫', 'success');
+        
+        // 關閉模態框
+        closeHelpRequestModal();
+        
+        // 實際實現中，這裡應該發送到後端API
+        // submitToAPI(formData);
+      }
+      
+      // 更新定位按鈕的顯示邏輯，當用戶允許定位時顯示人力請求按鈕
+      function updateLocationButtonsVisibility() {
+        const helpRequestBtn = document.getElementById('requestHelpBtn');
+        if (hasLocationPermission && userPosition) {
+          helpRequestBtn.classList.remove('hidden');
+        } else {
+          helpRequestBtn.classList.add('hidden');
+        }
+      }
+
+      // 地圖圖層控制
+      function toggleLayer(layerType) {
+        const buttons = document.querySelectorAll('.map-control-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        // 清除所有圖層的函數
+        function clearAllLayers() {
+          accommodationMarkers.forEach(marker => map.removeLayer(marker));
+          waterStationMarkers.forEach(marker => map.removeLayer(marker));
+          restroomMarkers.forEach(marker => map.removeLayer(marker));
+          showerStationMarkers.forEach(marker => map.removeLayer(marker));
+          medicalStationMarkers.forEach(marker => map.removeLayer(marker));
+          shuttlePolylines.forEach(p => map.removeLayer(p));
+          if (disasterPolygon) map.removeLayer(disasterPolygon);
+        }
+        
+        switch (layerType) {
+          case 'all':
+            document.getElementById('showAllBtn').classList.add('active');
+            accommodationMarkers.forEach(marker => map.addLayer(marker));
+            waterStationMarkers.forEach(marker => map.addLayer(marker));
+            restroomMarkers.forEach(marker => map.addLayer(marker));
+            showerStationMarkers.forEach(marker => map.addLayer(marker));
+            medicalStationMarkers.forEach(marker => map.addLayer(marker));
+            shuttlePolylines.forEach(p => map.addLayer(p));
+            if (disasterPolygon) map.addLayer(disasterPolygon);
+            break;
+          case 'accommodation':
+            clearAllLayers();
+            document.getElementById('showAccommodationBtn').classList.add('active');
+            accommodationMarkers.forEach(marker => map.addLayer(marker));
+            break;
+          case 'shuttle':
+            clearAllLayers();
+            document.getElementById('showShuttleBtn').classList.add('active');
+            shuttlePolylines.forEach(p => map.addLayer(p));
+            break;
+          case 'waterStation':
+            clearAllLayers();
+            document.getElementById('showWaterStationBtn').classList.add('active');
+            waterStationMarkers.forEach(marker => map.addLayer(marker));
+            break;
+          case 'restroom':
+            clearAllLayers();
+            document.getElementById('showRestroomBtn').classList.add('active');
+            restroomMarkers.forEach(marker => map.addLayer(marker));
+            break;
+          case 'showerStation':
+            clearAllLayers();
+            document.getElementById('showShowerStationBtn').classList.add('active');
+            showerStationMarkers.forEach(marker => map.addLayer(marker));
+            break;
+          case 'medicalStation':
+            clearAllLayers();
+            document.getElementById('showMedicalStationBtn').classList.add('active');
+            medicalStationMarkers.forEach(marker => map.addLayer(marker));
+            break;
+          case 'disaster':
+            clearAllLayers();
+            document.getElementById('showDisasterAreaBtn').classList.add('active');
+            if (disasterPolygon) map.addLayer(disasterPolygon);
+            break;
+        }
+        
+        // 更新側邊欄列表顯示
+        updateListDisplay(layerType);
+      } 
+
+      // 事件監聽器
+      document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+        
+        // 載入地圖資料
+        setTimeout(() => {
+          loadMapData();
+        }, 1000);
+        
+        // 檢查安全上下文和權限
+        console.log('安全上下文檢查:');
+        console.log('- isSecureContext:', window.isSecureContext);
+        console.log('- location.protocol:', window.location.protocol);
+        console.log('- navigator.geolocation 可用:', !!navigator.geolocation);
+        
+        // 初始化定位權限
+        setTimeout(() => {
+          initLocationPermission();
+        }, 1500);
+        
+        // 返回按鈕事件
+        document.getElementById('goBackBtn').addEventListener('click', handleGoBack);
+        
+        // 控制按鈕事件
+        document.getElementById('showAllBtn').addEventListener('click', () => toggleLayer('all'));
+        document.getElementById('showAccommodationBtn').addEventListener('click', () => toggleLayer('accommodation'));
+        document.getElementById('showShuttleBtn').addEventListener('click', () => toggleLayer('shuttle'));
+        document.getElementById('showWaterStationBtn').addEventListener('click', () => toggleLayer('waterStation'));
+        document.getElementById('showRestroomBtn').addEventListener('click', () => toggleLayer('restroom'));
+        document.getElementById('showShowerStationBtn').addEventListener('click', () => toggleLayer('showerStation'));
+        document.getElementById('showMedicalStationBtn').addEventListener('click', () => toggleLayer('medicalStation'));
+        document.getElementById('showDisasterAreaBtn').addEventListener('click', () => toggleLayer('disaster')); 
+        
+        // 定位按鈕事件（支持長按啟動位置追蹤）
+        const locateBtn = document.getElementById('locateUserBtn');
+        let pressTimer = null;
+        let isLongPress = false;
+        
+        locateBtn.addEventListener('mousedown', () => {
+          isLongPress = false;
+          pressTimer = setTimeout(() => {
+            isLongPress = true;
+            handleLocationButtonPress(); // 長按觸發位置追蹤
+          }, 800); // 800ms 後觸發長按
+        });
+        
+        locateBtn.addEventListener('mouseup', () => {
+          clearTimeout(pressTimer);
+          if (!isLongPress) {
+            toggleUserLocation(); // 短按觸發正常定位
+          }
+        });
+        
+        locateBtn.addEventListener('mouseleave', () => {
+          clearTimeout(pressTimer);
+        });
+        
+        // 觸控設備支持
+        locateBtn.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          isLongPress = false;
+          pressTimer = setTimeout(() => {
+            isLongPress = true;
+            handleLocationButtonPress();
+          }, 800);
+        });
+        
+        locateBtn.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          clearTimeout(pressTimer);
+          if (!isLongPress) {
+            toggleUserLocation();
+          }
+        });
+        
+        locateBtn.addEventListener('touchcancel', () => {
+          clearTimeout(pressTimer);
+        });
+        
+        document.getElementById('toggleInfoBtn').addEventListener('click', toggleInfoSidebar);
+        
+        // 人力請求相關事件監聽器
+        document.getElementById('requestHelpBtn').addEventListener('click', openHelpRequestModal);
+        document.getElementById('closeHelpRequestBtn').addEventListener('click', closeHelpRequestModal);
+        document.getElementById('cancelHelpRequestBtn').addEventListener('click', closeHelpRequestModal);
+        document.getElementById('helpRequestForm').addEventListener('submit', submitHelpRequest);
+        
+        // 點擊地圖時關閉側邊欄（手機版）
+        map.on('click', function() {
+          if (window.innerWidth <= 768) {
+            closeInfoSidebar();
+          }
+        });
+      });
+
+      // 切換資訊側邊欄
+      function toggleInfoSidebar() {
+        const sidebar = document.getElementById('infoSidebar');
+        
+        if (sidebar.classList.contains('show')) {
+          closeInfoSidebar();
+        } else {
+          openInfoSidebar();
+        }
+      }
+      
+      // 打開資訊側邊欄
+      function openInfoSidebar() {
+        const sidebar = document.getElementById('infoSidebar');
+        const btn = document.getElementById('toggleInfoBtn');
+        
+        sidebar.classList.add('show');
+        
+        btn.textContent = '關閉';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
+      }
+      
+      // 關閉資訊側邊欄
+      function closeInfoSidebar() {
+        const sidebar = document.getElementById('infoSidebar');
+        const btn = document.getElementById('toggleInfoBtn');
+        
+        sidebar.classList.remove('show');
+        
+        btn.textContent = '資訊';
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-primary');
+      }
+
+      // 頁面卸載時清理位置追蹤
+      window.addEventListener('beforeunload', () => {
+        if (isWatchingPosition) {
+          stopWatchingPosition();
+        }
+      });
+
+    </script>
+  </body>
+</html>
