@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>感謝有你，鍵盤背後的英雄</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.2.12/dist/framer-motion.umd.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        background-color: #f0f4f8;
+      }
+      .hero-bg {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.9)),
+          url('https://images.unsplash.com/photo-1555066931-4365d1469c98?q=80&w=2070&auto=format&fit=crop')
+            center/cover no-repeat;
+      }
+    </style>
+  </head>
+  <body class="antialiased text-gray-800">
+    <!-- Hero Section -->
+    <section
+      class="hero-bg h-[50vh] flex items-center justify-center text-white text-center shadow-lg px-4"
+    >
+      <div class="bg-black/40 p-8 md:p-12 rounded-lg backdrop-blur-sm max-w-4xl">
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">鍵盤背後的英雄 ✨</h1>
+        <p class="text-lg md:text-xl">你們在鍵盤那端輸入的每一行字，都成為災區這端的一道光。</p>
+      </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-12 md:py-16">
+      <!-- Project Milestones -->
+      <section class="mb-16">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2 text-center">我們一起做到的事</h2>
+        <p class="text-lg text-gray-500 mb-8 text-center max-w-2xl mx-auto">
+          從一個人的起心動念，到一群人的星火燎原。每一步，都算數。
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div
+            class="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500 transition-transform duration-300 hover:scale-105"
+          >
+            <div class="text-4xl mb-2">🚀</div>
+            <h3 class="text-xl font-bold mb-2">第一天</h3>
+            <p class="text-gray-600">從混亂資訊裡，生出第一份可用的災情整理與住宿清單。</p>
+          </div>
+          <div
+            class="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500 transition-transform duration-300 hover:scale-105"
+          >
+            <div class="text-4xl mb-2">🤝</div>
+            <h3 class="text-xl font-bold mb-2">幾小時後</h3>
+            <p class="text-gray-600">協作群組從 1 人變成 20+ 人，貢獻者遍佈全台各地。</p>
+          </div>
+          <div
+            class="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500 transition-transform duration-300 hover:scale-105"
+          >
+            <div class="text-4xl mb-2">✅</div>
+            <h3 class="text-xl font-bold mb-2">數天內</h3>
+            <p class="text-gray-600">完成數十篇彙整、多個自動化表單，並引導了大量志工。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Volunteer Wall -->
+      <section class="mb-16">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2 text-center">志工名單牆</h2>
+        <p class="text-lg text-gray-500 mb-8 text-center max-w-2xl mx-auto">
+          我們可能不全知道你的名字，但我們知道你的力量。謝謝每一個你。
+        </p>
+        <div class="bg-white rounded-xl shadow-lg p-8">
+          <div class="flex flex-wrap">
+            <span
+              class="bg-blue-100 text-blue-800 text-xl font-semibold mr-2 mb-2 px-3 py-1 rounded-full"
+              >小路</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- Touching Moments -->
+      <section class="mb-16">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2 text-center">小故事與感動瞬間</h2>
+        <p class="text-lg text-gray-500 mb-8 text-center max-w-2xl mx-auto">
+          在高速運轉的協作中，總有一些時刻讓我們會心一笑，或感受到溫暖。
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div
+            class="bg-white p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+          >
+            <p class="text-lg text-gray-700 border-l-4 border-purple-400 pl-4 mb-4">
+              那個表單的 bug，我好像找到了，半夜三點靈光一閃！
+            </p>
+            <p class="text-right text-gray-500 font-medium">- 一位凌晨還在 debug 的工程師</p>
+          </div>
+          <div
+            class="bg-white p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+          >
+            <p class="text-lg text-gray-700 border-l-4 border-purple-400 pl-4 mb-4">
+              剛有人回報說，他透過我們的清單找到地方住了，超開心！
+            </p>
+            <p class="text-right text-gray-500 font-medium">- 資訊組的夥伴</p>
+          </div>
+          <div
+            class="bg-white p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl md:col-span-2"
+          >
+            <p class="text-lg text-gray-700 border-l-4 border-purple-400 pl-4 mb-4">
+              我不會寫程式，但我可以幫忙打電話確認資訊，一個一個來！
+            </p>
+            <p class="text-right text-gray-500 font-medium">- 一位熱血的大學生</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="text-center mb-16">
+        <div class="bg-white rounded-xl shadow-lg p-8 max-w-3xl mx-auto">
+          <div class="text-5xl mb-4">🤝</div>
+          <h2 class="text-2xl font-bold text-gray-800 mb-4">傳承與接力</h2>
+          <p class="text-gray-600 text-lg">
+            專案可能會繼續變形，但你們留下的基礎，讓後來的人能跑得更快。
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-center pt-8 border-t-2 border-gray-200">
+        <h1 class="text-3xl md:text-4xl font-bold text-blue-600 mb-4">
+          因為有你們，我們把混亂變成方向。
+        </h1>
+        <p class="text-gray-500">再次感謝所有付出心力的遠端夥伴。</p>
+      </footer>
+    </main>
+    <script>
+      const { motion } = Motion;
+      const sections = document.querySelectorAll('section, footer');
+      sections.forEach((section) => {
+        const motionDiv = document.createElement('div');
+        motionDiv.style.opacity = 0;
+        motionDiv.dataset.motion = 'initial';
+
+        motion.div(motionDiv, {
+          initial: { opacity: 0, y: '-100%' },
+          whileInView: { opacity: 1, y: 0 },
+          transition: { duration: 0.5 },
+          viewport: { once: true },
+        });
+
+        while (section.firstChild) {
+          motionDiv.appendChild(section.firstChild);
+        }
+        section.appendChild(motionDiv);
+      });
+    </script>
+  </body>
+</html>
