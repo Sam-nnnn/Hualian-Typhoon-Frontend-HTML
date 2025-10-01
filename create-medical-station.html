@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=*" />
+    <title>新增醫療站 - 救災地點總覽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100svh;
+        width: 100svw;
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        background: white;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        min-height: 100vh;
+        min-width: 100svw;
+        background: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .form-container {
+        background: white;
+        padding: 32px;
+        width: 100%;
+        max-width: 800px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .form-label.required::after {
+        content: ' *';
+        color: #ef4444;
+      }
+
+      .form-input,
+      .form-textarea,
+      .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: white;
+      }
+
+      .form-input:focus,
+      .form-textarea:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      .map-container {
+        height: 300px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .coordinate-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        background: #6b7280;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #4b5563;
+      }
+
+      .btn-success {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #059669;
+        transform: translateY(-1px);
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .checkbox-item input[type='checkbox'] {
+        width: 16px;
+        height: 16px;
+        accent-color: #3b82f6;
+      }
+
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        transform: translateX(110%);
+        transition: transform 0.3s ease;
+      }
+
+      .toast.show {
+        transform: translateX(0);
+      }
+
+      .toast.success {
+        background: #10b981;
+      }
+
+      .toast.error {
+        background: #ef4444;
+      }
+
+      .toast.warning {
+        background: #f59e0b;
+      }
+
+      .preview-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .preview-modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 600px;
+        max-height: 80vh;
+        width: 90%;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+
+      .preview-modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9fafb;
+      }
+
+      .preview-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .preview-close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .preview-close-btn:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      .preview-modal-body {
+        padding: 24px;
+        max-height: calc(80vh - 100px);
+        overflow-y: auto;
+      }
+
+      .preview-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .preview-item:last-child {
+        border-bottom: none;
+      }
+
+      .preview-item strong {
+        color: #374151;
+        font-weight: 600;
+        display: inline-block;
+        min-width: 120px;
+      }
+
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .coordinate-inputs {
+          grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VHR24V48H3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag('js', new Date());
+
+    gtag('config', 'G-VHR24V48H3');
+  </script>
+
+  <body>
+    <div class="container">
+      <div class="form-container">
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">新增醫療站</h1>
+          <p class="text-gray-600">
+            請填寫醫療站的詳細資訊，標註 <span class="text-red-500">*</span> 的欄位為必填項目
+          </p>
+        </div>
+
+        <form id="medicalStationForm" class="space-y-6">
+          <div class="form-grid">
+            <!-- 醫療站名稱 -->
+            <div class="form-group">
+              <label for="name" class="form-label required">醫療站名稱</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                class="form-input"
+                placeholder="請輸入醫療站名稱"
+                required
+              />
+            </div>
+
+            <!-- 醫療站類型 -->
+            <div class="form-group">
+              <label for="station_type" class="form-label required">醫療站類型</label>
+              <select id="station_type" name="station_type" class="form-select" required>
+                <option disabled value="">請選擇醫療站類型</option>
+                <option value="self_organized">自主組織</option>
+                <option value="fixed_point">固定據點</option>
+                <option value="shelter_medical">庇護所醫療</option>
+              </select>
+            </div>
+
+            <!-- 聯絡電話 -->
+            <div class="form-group">
+              <label for="phone" class="form-label">聯絡電話</label>
+              <input
+                type="text"
+                id="phone"
+                name="phone"
+                class="form-input"
+                placeholder="請輸入聯絡電話"
+              />
+            </div>
+
+            <!-- 負責人/聯絡人 -->
+            <div class="form-group">
+              <label for="contact_person" class="form-label">負責人/聯絡人</label>
+              <input
+                type="text"
+                id="contact_person"
+                name="contact_person"
+                class="form-input"
+                placeholder="請輸入負責人或聯絡人姓名"
+              />
+            </div>
+
+            <!-- 營運時間 -->
+            <div class="form-group">
+              <label for="operating_hours" class="form-label">營運時間</label>
+              <input
+                type="text"
+                id="operating_hours"
+                name="operating_hours"
+                class="form-input"
+                placeholder="例：24小時, 08:00-20:00"
+              />
+            </div>
+
+            <!-- 醫護人員數 -->
+            <div class="form-group">
+              <label for="medical_staff" class="form-label">醫護人員數</label>
+              <input
+                type="number"
+                id="medical_staff"
+                name="medical_staff"
+                class="form-input"
+                min="0"
+                placeholder="請輸入醫護人員數量"
+              />
+            </div>
+          </div>
+
+          <!-- 地點/地址 -->
+          <div class="form-group full-width">
+            <label for="location" class="form-label">地點/地址</label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              class="form-input"
+              placeholder="請輸入地點或地址"
+            />
+          </div>
+
+          <!-- 詳細地址 -->
+          <div class="form-group full-width">
+            <label for="detailed_address" class="form-label">詳細地址</label>
+            <input
+              type="text"
+              id="detailed_address"
+              name="detailed_address"
+              class="form-input"
+              placeholder="請輸入詳細地址"
+            />
+          </div>
+
+          <!-- GPS 座標 -->
+          <div class="form-group full-width">
+            <label for="coordinates" class="form-label required">GPS 座標</label>
+            <div class="map-container" id="mapContainer"></div>
+            <div class="coordinate-inputs">
+              <div>
+                <label for="lat" class="form-label">緯度 (Latitude)</label>
+                <input
+                  type="number"
+                  id="lat"
+                  name="lat"
+                  class="form-input"
+                  step="0.000001"
+                  placeholder="23.xxxx"
+                  required
+                />
+              </div>
+              <div>
+                <label for="lng" class="form-label">經度 (Longitude)</label>
+                <input
+                  type="number"
+                  id="lng"
+                  name="lng"
+                  class="form-input"
+                  step="0.000001"
+                  placeholder="121.xxxx"
+                  required
+                />
+              </div>
+            </div>
+            <button type="button" id="getCurrentLocationBtn" class="btn btn-primary mt-2">
+              獲取當前位置
+            </button>
+            <p class="text-sm text-gray-500 mt-2">點擊地圖上的位置來設定座標，或手動輸入座標值</p>
+          </div>
+
+          <!-- 營運狀態 -->
+          <div class="form-group full-width">
+            <label for="status" class="form-label required">營運狀態</label>
+            <select id="status" name="status" class="form-select" required>
+              <option disabled value="">請選擇營運狀態</option>
+              <option value="active">正在營運</option>
+              <option value="temporarily_closed">暫時關閉</option>
+              <option value="closed">已關閉</option>
+            </select>
+          </div>
+
+          <!-- 提供服務項目 -->
+          <div class="form-group full-width">
+            <label class="form-label">提供服務項目</label>
+            <div class="checkbox-group">
+              <div class="checkbox-item">
+                <input type="checkbox" id="service_emergency" name="services" value="急診處理" />
+                <label for="service_emergency">急診處理</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="service_trauma" name="services" value="傷口處理" />
+                <label for="service_trauma">傷口處理</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="service_chronic" name="services" value="慢性病用藥" />
+                <label for="service_chronic">慢性病用藥</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 醫療設備 -->
+          <div class="form-group full-width">
+            <label class="form-label">醫療設備</label>
+            <div class="checkbox-group">
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="equipment_blood_pressure"
+                  name="equipment"
+                  value="血壓計"
+                />
+                <label for="equipment_blood_pressure">血壓計</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="equipment_thermometer" name="equipment" value="體溫計" />
+                <label for="equipment_thermometer">體溫計</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="equipment_rescue" name="equipment" value="急救箱" />
+                <label for="equipment_rescue">急救箱</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 每日服務量 -->
+          <div class="form-group full-width">
+            <label for="daily_capacity" class="form-label">每日服務量（人次）</label>
+            <input
+              type="number"
+              id="daily_capacity"
+              name="daily_capacity"
+              class="form-input"
+              min="0"
+              placeholder="請輸入每日可服務人次"
+            />
+          </div>
+
+          <!-- 所屬組織 -->
+          <div class="form-group full-width">
+            <label for="affiliated_organization" class="form-label">所屬組織</label>
+            <input
+              type="text"
+              id="affiliated_organization"
+              name="affiliated_organization"
+              class="form-input"
+              placeholder="例：慈濟基金會"
+            />
+          </div>
+
+          <!-- 相關連結 -->
+          <div class="form-group full-width">
+            <label for="link" class="form-label">相關連結</label>
+            <input
+              type="url"
+              id="link"
+              name="link"
+              class="form-input"
+              placeholder="請輸入相關網站或地圖連結"
+            />
+          </div>
+
+          <!-- 其他備註 -->
+          <div class="form-group full-width">
+            <label for="notes" class="form-label">備註說明</label>
+            <textarea
+              id="notes"
+              name="notes"
+              class="form-textarea"
+              placeholder="例：提供免費醫療諮詢, 需預約掛號"
+            ></textarea>
+          </div>
+
+          <!-- 表單操作按鈕 -->
+          <div class="form-actions">
+            <button type="button" id="resetBtn" class="btn btn-secondary">重置表單</button>
+            <button type="button" id="previewBtn" class="btn btn-primary">預覽資料</button>
+            <button type="submit" class="btn btn-success">提交醫療站</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      // API URL
+      const API_URL = 'https://guangfu250923.pttapp.cc';
+
+      // 地圖變數
+      let map;
+      let marker;
+
+      // 初始化地圖
+      function initMap() {
+        // 設定光復鄉附近的中心點
+        const centerLat = 23.6617;
+        const centerLng = 121.4253;
+
+        try {
+          map = L.map('mapContainer').setView([centerLat, centerLng], 12);
+
+          // 添加地圖圖層
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+          }).addTo(map);
+
+          // 地圖點擊事件
+          map.on('click', function (e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            updateMapMarker(lat, lng);
+            document.getElementById('lat').value = lat.toFixed(6);
+            document.getElementById('lng').value = lng.toFixed(6);
+          });
+
+          console.log('地圖初始化成功');
+        } catch (error) {
+          console.error('地圖初始化失敗:', error);
+        }
+      }
+
+      // 更新地圖標記
+      function updateMapMarker(lat, lng) {
+        if (marker) {
+          map.removeLayer(marker);
+        }
+
+        marker = L.marker([lat, lng]).addTo(map);
+        map.setView([lat, lng], 15);
+      }
+
+      // 獲取當前位置
+      function getCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+
+              document.getElementById('lat').value = lat.toFixed(6);
+              document.getElementById('lng').value = lng.toFixed(6);
+              updateMapMarker(lat, lng);
+
+              showToast('成功獲取當前位置', 'success');
+            },
+            function (error) {
+              console.error('獲取位置失敗:', error);
+              showToast('無法獲取當前位置，請手動設定', 'error');
+            },
+          );
+        } else {
+          showToast('您的瀏覽器不支援定位功能', 'error');
+        }
+      }
+
+      // 顯示 Toast 通知
+      function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      // 生成唯一 ID
+      // function generateId() {
+      //   return 'medical-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      // }
+
+      // 獲取表單資料
+      function getFormData() {
+        const form = document.getElementById('medicalStationForm');
+        const formData = new FormData(form);
+
+        // 處理服務項目多選框
+        const services = [];
+        document.querySelectorAll('input[name="services"]:checked').forEach((checkbox) => {
+          services.push(checkbox.value);
+        });
+
+        // 處理醫療設備多選框
+        const equipment = [];
+        document.querySelectorAll('input[name="equipment"]:checked').forEach((checkbox) => {
+          equipment.push(checkbox.value);
+        });
+
+        const lat = parseFloat(formData.get('lat'));
+        const lng = parseFloat(formData.get('lng'));
+
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+          throw new Error('請設定有效的 GPS 座標');
+        }
+
+        if (!formData.get('name')) {
+          throw new Error('請填寫醫療站名稱');
+        }
+
+        if (!formData.get('station_type')) {
+          throw new Error('請選擇醫療站類型');
+        }
+
+        if (!formData.get('status')) {
+          throw new Error('請選擇營運狀態');
+        }
+
+        const data = {
+          station_type: formData.get('station_type'),
+          name: formData.get('name'),
+          location: formData.get('location') || '',
+          detailed_address: formData.get('detailed_address') || '',
+          phone: formData.get('phone') || '',
+          contact_person: formData.get('contact_person') || '',
+          status: formData.get('status'),
+          services: services,
+          operating_hours: formData.get('operating_hours') || '',
+          equipment: equipment,
+          medical_staff: formData.get('medical_staff')
+            ? parseInt(formData.get('medical_staff'))
+            : null,
+          daily_capacity: formData.get('daily_capacity')
+            ? parseInt(formData.get('daily_capacity'))
+            : null,
+          coordinates: {
+            lat: lat,
+            lng: lng,
+          },
+          affiliated_organization: formData.get('affiliated_organization') || '',
+          notes: formData.get('notes') || '',
+          link: formData.get('link') || '',
+        };
+
+        return data;
+      }
+
+      // 預覽資料
+      function previewData() {
+        try {
+          const data = getFormData();
+
+          // 創建預覽模態框
+          const modal = document.createElement('div');
+          modal.className = 'preview-modal';
+          modal.innerHTML = `
+            <div class="preview-modal-content">
+              <div class="preview-modal-header">
+                <h3>預覽醫療站資料</h3>
+                <button type="button" class="preview-close-btn">&times;</button>
+              </div>
+              <div class="preview-modal-body">
+                <div class="preview-item"><strong>醫療站名稱:</strong> ${data.name}</div>
+                <div class="preview-item"><strong>醫療站類型:</strong> ${data.station_type}</div>
+                <div class="preview-item"><strong>地點/地址:</strong> ${
+                  data.location || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>詳細地址:</strong> ${
+                  data.detailed_address || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>GPS座標:</strong> ${data.coordinates.lat}, ${
+            data.coordinates.lng
+          }</div>
+                <div class="preview-item"><strong>聯絡電話:</strong> ${data.phone || '未填寫'}</div>
+                <div class="preview-item"><strong>負責人/聯絡人:</strong> ${
+                  data.contact_person || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>營運狀態:</strong> ${data.status}</div>
+                <div class="preview-item"><strong>提供服務項目:</strong> ${
+                  data.services.length > 0 ? data.services.join(', ') : '未選擇'
+                }</div>
+                <div class="preview-item"><strong>營運時間:</strong> ${
+                  data.operating_hours || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>醫療設備:</strong> ${
+                  data.equipment.length > 0 ? data.equipment.join(', ') : '未選擇'
+                }</div>
+                <div class="preview-item"><strong>醫護人員數:</strong> ${
+                  data.medical_staff !== null ? data.medical_staff + '人' : '未填寫'
+                }</div>
+                <div class="preview-item"><strong>每日服務量:</strong> ${
+                  data.daily_capacity !== null ? data.daily_capacity + '人次' : '未填寫'
+                }</div>
+                <div class="preview-item"><strong>所屬組織:</strong> ${
+                  data.affiliated_organization || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>相關連結:</strong> ${data.link || '未填寫'}</div>
+                <div class="preview-item"><strong>備註說明:</strong> ${data.notes || '未填寫'}</div>
+              </div>
+            </div>
+          `;
+
+          document.body.appendChild(modal);
+
+          // 關閉按鈕事件
+          modal.querySelector('.preview-close-btn').addEventListener('click', () => {
+            document.body.removeChild(modal);
+          });
+
+          // 點擊背景關閉
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+              document.body.removeChild(modal);
+            }
+          });
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      // 重置表單
+      function resetForm() {
+        // 創建確認模態框
+        const confirmModal = document.createElement('div');
+        confirmModal.className = 'preview-modal';
+        confirmModal.innerHTML = `
+          <div class="preview-modal-content">
+            <div class="preview-modal-header">
+              <h3>⚠️ 確認重置</h3>
+            </div>
+            <div class="preview-modal-body">
+              <p style="margin-bottom: 20px; color: #f59e0b; font-weight: 500;">確定要重置表單嗎？所有已填寫的資料將會遺失。</p>
+              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" id="cancelResetBtn">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmResetBtn">確定重置</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(confirmModal);
+
+        // 按鈕事件
+        confirmModal.querySelector('#cancelResetBtn').addEventListener('click', () => {
+          document.body.removeChild(confirmModal);
+        });
+
+        confirmModal.querySelector('#confirmResetBtn').addEventListener('click', () => {
+          document.getElementById('medicalStationForm').reset();
+          if (marker) {
+            map.removeLayer(marker);
+            marker = null;
+          }
+          showToast('表單已重置', 'warning');
+          document.body.removeChild(confirmModal);
+        });
+
+        // 點擊背景關閉
+        confirmModal.addEventListener('click', (e) => {
+          if (e.target === confirmModal) {
+            document.body.removeChild(confirmModal);
+          }
+        });
+      }
+
+      // 提交表單
+      async function submitForm(event) {
+        event.preventDefault();
+
+        try {
+          const data = getFormData();
+
+          console.log('提交醫療站資料:', data);
+
+          const response = await fetch(`${API_URL}/medical_stations`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+
+          if (response.ok) {
+            showToast('醫療站新增成功！', 'success');
+
+            // 創建成功確認模態框
+            const successModal = document.createElement('div');
+            successModal.className = 'preview-modal';
+            successModal.innerHTML = `
+              <div class="preview-modal-content">
+                <div class="preview-modal-header">
+                  <h3>✅ 新增成功</h3>
+                </div>
+                <div class="preview-modal-body">
+                  <p style="margin-bottom: 20px; color: #10b981; font-weight: 600;">醫療站已成功新增到系統中！</p>
+                  <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-primary" id="addAnotherBtn">新增另一個醫療站</button>
+                    <button type="button" class="btn btn-success" id="backToMainBtn">返回主頁面</button>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            document.body.appendChild(successModal);
+
+            // 按鈕事件
+            successModal.querySelector('#addAnotherBtn').addEventListener('click', () => {
+              document.body.removeChild(successModal);
+              resetForm();
+            });
+
+            successModal.querySelector('#backToMainBtn').addEventListener('click', () => {
+              window.location.href = 'map.html';
+            });
+          } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '提交失敗，請稍後再試');
+          }
+        } catch (error) {
+          console.error('提交錯誤:', error);
+          showToast(error.message || '提交失敗，請檢查網路連線', 'error');
+        }
+      }
+
+      // 座標輸入變化時更新地圖
+      function onCoordinateChange() {
+        const lat = parseFloat(document.getElementById('lat').value);
+        const lng = parseFloat(document.getElementById('lng').value);
+
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            updateMapMarker(lat, lng);
+          }
+        }
+      }
+
+      // 事件監聽器
+      document.addEventListener('DOMContentLoaded', function () {
+        // 初始化地圖（延遲初始化以確保容器已渲染）
+        setTimeout(initMap, 100);
+
+        // 表單事件
+        document.getElementById('medicalStationForm').addEventListener('submit', submitForm);
+        document.getElementById('resetBtn').addEventListener('click', resetForm);
+        document.getElementById('previewBtn').addEventListener('click', previewData);
+        document
+          .getElementById('getCurrentLocationBtn')
+          .addEventListener('click', getCurrentLocation);
+
+        // 座標輸入事件
+        document.getElementById('lat').addEventListener('input', onCoordinateChange);
+        document.getElementById('lng').addEventListener('input', onCoordinateChange);
+      });
+    </script>
+  </body>
+</html>
