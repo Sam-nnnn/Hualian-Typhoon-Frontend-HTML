@@ -1,0 +1,45 @@
+name: Deploy Static Site to GCP
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:  # 允許手動觸發
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Fix Git ownership
+        run: git config --global --add safe.directory '*'
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to GCP Instance
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_INSTANCE_NAME }} \
+            --zone=${{ secrets.GCP_ZONE }} \
+            --command="
+              echo 'Current user:' \$(whoami) &&
+              echo 'Directory owner:' &&
+              ls -ld ${{ secrets.APP_DIRECTORY }} &&
+              cd ${{ secrets.APP_DIRECTORY }} &&
+              sudo git config --global --add safe.directory ${{ secrets.APP_DIRECTORY }} &&
+              sudo git pull origin master &&
+              sudo systemctl reload nginx
+            "
+
+      - name: Verify Deployment
+        run: |
+          echo "Static site deployed successfully!"
+          echo "Access your site at: http://$(gcloud compute instances describe ${{ secrets.GCP_INSTANCE_NAME }} --zone=${{ secrets.GCP_ZONE }} --format='get(networkInterfaces[0].accessConfigs[0].natIP)')"
