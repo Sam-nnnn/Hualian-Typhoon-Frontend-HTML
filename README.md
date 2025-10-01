@@ -143,9 +143,14 @@
 
 ### Production 生產環境
 
-**網址：** [https://guangfu250923-map.pttapp.cc](https://guangfu250923-map.pttapp.cc)
+**網址：** [地圖頁](hhttps://guangfu250923-map.pttapp.cc/map)
+[新增廁所表單頁](hhttps://guangfu250923-map.pttapp.cc/create-restroom)
+[新增住宿點表單頁](hhttps://guangfu250923-map.pttapp.cc/create-accommodation)
+[新增補水站表單頁](hhttps://guangfu250923-map.pttapp.cc/create-water-refill-station)
 
 ### Dev 開發環境
 
-**網址：**
-[https://hualian-typhoon-frontend-dev.zeabur.app](https://hualian-typhoon-frontend-dev.zeabur.app)
+**網址：** [地圖頁](https://hualian-typhoon-frontend-dev.zeabur.app/map)
+[新增廁所表單頁](https://hualian-typhoon-frontend-dev.zeabur.app/create-restroom)
+[新增住宿點表單頁](https://hualian-typhoon-frontend-dev.zeabur.app/create-accommodation)
+[新增補水站表單頁](https://hualian-typhoon-frontend-dev.zeabur.app/create-water-refill-station)
