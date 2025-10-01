@@ -694,9 +694,9 @@
       }
 
       // 生成唯一 ID
-      function generateId() {
-        return 'acc-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-      }
+      // function generateId() {
+      //   return 'acc-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      // }
 
       // 獲取表單資料
       function getFormData() {
@@ -721,7 +721,6 @@
         }
 
         const data = {
-          id: generateId(),
           township: formData.get('township') || '',
           name: formData.get('name') || '',
           has_vacancy: formData.get('has_vacancy') || '',

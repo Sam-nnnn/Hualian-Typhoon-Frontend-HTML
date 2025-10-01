@@ -654,9 +654,9 @@
       }
 
       // 生成唯一 ID
-      function generateId() {
-        return 'restroom-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-      }
+      // function generateId() {
+      //   return 'restroom-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      // }
 
       // 獲取表單資料
       function getFormData() {
@@ -709,7 +709,6 @@
         }
 
         const data = {
-          id: generateId(),
           name: formData.get('name'),
           address: formData.get('address'),
           coordinates: {
