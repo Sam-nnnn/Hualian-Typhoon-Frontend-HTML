@@ -30,9 +30,12 @@ jobs:
           gcloud compute ssh ${{ secrets.GCP_INSTANCE_NAME }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --command="
+              echo 'Current user:' \$(whoami) &&
+              echo 'Directory owner:' &&
+              ls -ld ${{ secrets.APP_DIRECTORY }} &&
               cd ${{ secrets.APP_DIRECTORY }} &&
-              git config --global --add safe.directory ${{ secrets.APP_DIRECTORY }} &&
-              git pull origin master &&
+              sudo git config --global --add safe.directory ${{ secrets.APP_DIRECTORY }} &&
+              sudo git pull origin master &&
               sudo systemctl reload nginx
             "
 
