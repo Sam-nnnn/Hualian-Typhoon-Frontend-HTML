@@ -3,7 +3,7 @@ name: Deploy to GCP Instance
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
