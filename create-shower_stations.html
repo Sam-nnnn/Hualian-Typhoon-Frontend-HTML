@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Permissions-Policy" content="geolocation=*" />
-    <title>新增洗澡站 - 救災地點總覽</title>
+    <title>新增洗澡點 - 救災地點總覽</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link
@@ -325,23 +325,23 @@
     <div class="container">
       <div class="form-container">
         <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-800 mb-2">新增洗澡站</h1>
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">新增洗澡點</h1>
           <p class="text-gray-600">
-            請填寫洗澡站的詳細資訊，標註 <span class="text-red-500">*</span> 的欄位為必填項目
+            請填寫洗澡點的詳細資訊，標註 <span class="text-red-500">*</span> 的欄位為必填項目
           </p>
         </div>
 
         <form id="showerStationForm" class="space-y-6">
           <div class="form-grid">
-            <!-- 洗澡站名稱 -->
+            <!-- 洗澡點名稱 -->
             <div class="form-group">
-              <label for="name" class="form-label required">洗澡站名稱</label>
+              <label for="name" class="form-label required">洗澡點名稱</label>
               <input
                 type="text"
                 id="name"
                 name="name"
                 class="form-input"
-                placeholder="請輸入洗澡站名稱"
+                placeholder="請輸入洗澡點名稱"
                 required
               />
             </div>
@@ -605,7 +605,7 @@
           <div class="form-actions">
             <button type="button" id="resetBtn" class="btn btn-secondary">重置表單</button>
             <button type="button" id="previewBtn" class="btn btn-primary">預覽資料</button>
-            <button type="submit" class="btn btn-success">提交洗澡站</button>
+            <button type="submit" class="btn btn-success">提交洗澡點</button>
           </div>
         </form>
       </div>
@@ -731,7 +731,7 @@
         }
 
         if (!formData.get('name')) {
-          throw new Error('請填寫洗澡站名稱');
+          throw new Error('請填寫洗澡點名稱');
         }
 
         if (!formData.get('facility_type')) {
@@ -789,11 +789,11 @@
           modal.innerHTML = `
             <div class="preview-modal-content">
               <div class="preview-modal-header">
-                <h3>預覽洗澡站資料</h3>
+                <h3>預覽洗澡點資料</h3>
                 <button type="button" class="preview-close-btn">&times;</button>
               </div>
               <div class="preview-modal-body">
-                <div class="preview-item"><strong>洗澡站名稱:</strong> ${data.name}</div>
+                <div class="preview-item"><strong>洗澡點名稱:</strong> ${data.name}</div>
                 <div class="preview-item"><strong>設備類型:</strong> ${data.facility_type}</div>
                 <div class="preview-item"><strong>地址:</strong> ${data.address || '未填寫'}</div>
                 <div class="preview-item"><strong>GPS座標:</strong> ${data.coordinates.lat}, ${
@@ -912,7 +912,7 @@
         try {
           const data = getFormData();
 
-          console.log('提交洗澡站資料:', data);
+          console.log('提交洗澡點資料:', data);
 
           const response = await fetch(`${API_URL}/shower_stations`, {
             method: 'POST',
@@ -923,7 +923,7 @@
           });
 
           if (response.ok) {
-            showToast('洗澡站新增成功！', 'success');
+            showToast('洗澡點新增成功！', 'success');
 
             // 創建成功確認模態框
             const successModal = document.createElement('div');
@@ -934,9 +934,9 @@
                   <h3>✅ 新增成功</h3>
                 </div>
                 <div class="preview-modal-body">
-                  <p style="margin-bottom: 20px; color: #10b981; font-weight: 600;">洗澡站已成功新增到系統中！</p>
+                  <p style="margin-bottom: 20px; color: #10b981; font-weight: 600;">洗澡點已成功新增到系統中！</p>
                   <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-primary" id="addAnotherBtn">新增另一個洗澡站</button>
+                    <button type="button" class="btn btn-primary" id="addAnotherBtn">新增另一個洗澡點</button>
                     <button type="button" class="btn btn-success" id="backToMainBtn">返回主頁面</button>
                   </div>
                 </div>
