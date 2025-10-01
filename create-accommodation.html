@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>新增住宿點 - 救災地點總覽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100svh;
+        width: 100svw;
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        background: white;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        min-height: 100vh;
+        min-width: 100svw;
+        background: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .form-container {
+        background: white;
+        padding: 32px;
+        width: 100%;
+        max-width: 800px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .form-label.required::after {
+        content: ' *';
+        color: #ef4444;
+      }
+
+      .form-input,
+      .form-textarea,
+      .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: white;
+      }
+
+      .form-input:focus,
+      .form-textarea:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      .map-container {
+        height: 300px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .coordinate-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        background: #6b7280;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #4b5563;
+      }
+
+      .btn-success {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #059669;
+        transform: translateY(-1px);
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .checkbox-item input[type='checkbox'] {
+        width: 16px;
+        height: 16px;
+        accent-color: #3b82f6;
+      }
+
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        transform: translateX(110%);
+        transition: transform 0.3s ease;
+      }
+
+      .toast.show {
+        transform: translateX(0);
+      }
+
+      .toast.success {
+        background: #10b981;
+      }
+
+      .toast.error {
+        background: #ef4444;
+      }
+
+      .toast.warning {
+        background: #f59e0b;
+      }
+
+      .preview-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .preview-modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 600px;
+        max-height: 80vh;
+        width: 90%;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+
+      .preview-modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9fafb;
+      }
+
+      .preview-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .preview-close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .preview-close-btn:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      .preview-modal-body {
+        padding: 24px;
+        max-height: calc(80vh - 100px);
+        overflow-y: auto;
+      }
+
+      .preview-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .preview-item:last-child {
+        border-bottom: none;
+      }
+
+      .preview-item strong {
+        color: #374151;
+        font-weight: 600;
+        display: inline-block;
+        min-width: 120px;
+      }
+
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .coordinate-inputs {
+          grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="form-container">
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">新增住宿點</h1>
+          <p class="text-gray-600">
+            請填寫住宿點的詳細資訊，標註 <span class="text-red-500">*</span> 的欄位為必填項目
+          </p>
+        </div>
+
+        <form id="accommodationForm" class="space-y-6">
+          <div class="form-grid">
+            <!-- 住宿點名稱 -->
+            <div class="form-group">
+              <label for="name" class="form-label">住宿點名稱</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                class="form-input"
+                placeholder="請輸入住宿點名稱"
+              />
+            </div>
+
+            <!-- 所屬鄉鎮 -->
+            <div class="form-group">
+              <label for="township" class="form-label">所屬鄉鎮</label>
+              <select id="township" name="township" class="form-select">
+                <option disabled value="">請選擇鄉鎮</option>
+                <option value="光復鄉">光復鄉</option>
+                <option value="吉安鄉">吉安鄉</option>
+                <option value="花蓮市">花蓮市</option>
+                <option value="壽豐鄉">壽豐鄉</option>
+                <option value="玉里鎮">玉里鎮</option>
+                <option value="瑞穗鄉">瑞穗鄉</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+
+            <!-- 空房狀態 -->
+            <div class="form-group">
+              <label for="has_vacancy" class="form-label">空房狀態</label>
+              <select id="has_vacancy" name="has_vacancy" class="form-select">
+                <option disabled value="">請選擇空房狀態</option>
+                <option value="available">有空房</option>
+                <option value="full">已滿房</option>
+                <option value="unknown">狀態不明</option>
+                <option value="need_confirm">需要確認</option>
+              </select>
+            </div>
+
+            <!-- 開放期間 -->
+            <div class="form-group">
+              <label for="available_period" class="form-label">開放期間</label>
+              <input
+                type="text"
+                id="available_period"
+                name="available_period"
+                class="form-input"
+                placeholder="例：9/27-10/3, 9/24起"
+              />
+            </div>
+
+            <!-- 容納人數 -->
+            <div class="form-group">
+              <label for="capacity" class="form-label">容納人數</label>
+              <input
+                type="number"
+                id="capacity"
+                name="capacity"
+                class="form-input"
+                min="1"
+                placeholder="請輸入容納人數"
+              />
+            </div>
+
+            <!-- 費用 -->
+            <div class="form-group">
+              <label for="pricing" class="form-label">費用</label>
+              <input
+                type="text"
+                id="pricing"
+                name="pricing"
+                class="form-input"
+                placeholder="例：免費, 優惠價500元/晚, 待確認"
+              />
+            </div>
+          </div>
+
+          <!-- 地址 -->
+          <div class="form-group full-width">
+            <label for="address" class="form-label">地址</label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              class="form-input"
+              placeholder="請輸入詳細地址"
+            />
+          </div>
+
+          <!-- GPS 座標 -->
+          <div class="form-group full-width">
+            <label for="coordinates" class="form-label required">GPS 座標</label>
+            <div class="map-container" id="mapContainer"></div>
+            <div class="coordinate-inputs">
+              <div>
+                <label for="lat" class="form-label">緯度 (Latitude)</label>
+                <input
+                  type="number"
+                  id="lat"
+                  name="lat"
+                  class="form-input"
+                  step="0.000001"
+                  placeholder="23.xxxx"
+                  required
+                />
+              </div>
+              <div>
+                <label for="lng" class="form-label">經度 (Longitude)</label>
+                <input
+                  type="number"
+                  id="lng"
+                  name="lng"
+                  class="form-input"
+                  step="0.000001"
+                  placeholder="121.xxxx"
+                  required
+                />
+              </div>
+            </div>
+            <button type="button" id="getCurrentLocationBtn" class="btn btn-primary mt-2">
+              獲取當前位置
+            </button>
+            <p class="text-sm text-gray-500 mt-2">點擊地圖上的位置來設定座標，或手動輸入座標值</p>
+          </div>
+
+          <!-- 聯絡方式 -->
+          <div class="form-group full-width">
+            <label for="contact_info" class="form-label required">聯絡方式</label>
+            <input
+              type="text"
+              id="contact_info"
+              name="contact_info"
+              class="form-input"
+              placeholder="電話、Line ID、FB私訊等聯絡方式"
+              required
+            />
+          </div>
+
+          <!-- 房間資訊 -->
+          <div class="form-group full-width">
+            <label for="room_info" class="form-label">房間資訊</label>
+            <input
+              type="text"
+              id="room_info"
+              name="room_info"
+              class="form-input"
+              placeholder="例：雙人房 2 間、四人房 1 間"
+            />
+          </div>
+
+          <!-- 入住限制 -->
+          <div class="form-group full-width">
+            <label for="restrictions" class="form-label">入住限制</label>
+            <textarea
+              id="restrictions"
+              name="restrictions"
+              class="form-textarea"
+              placeholder="例：限救災志工, 每人限住兩晚, 需出示志工證"
+            ></textarea>
+          </div>
+
+          <!-- 提供設施 -->
+          <div class="form-group full-width">
+            <label class="form-label">提供設施</label>
+            <div class="checkbox-group">
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_wifi" name="facilities" value="Wi-Fi" />
+                <label for="facility_wifi">Wi-Fi</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_parking" name="facilities" value="停車位" />
+                <label for="facility_parking">停車位</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_breakfast" name="facilities" value="早餐" />
+                <label for="facility_breakfast">早餐</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_laundry" name="facilities" value="洗衣" />
+                <label for="facility_laundry">洗衣</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_kitchen" name="facilities" value="廚房" />
+                <label for="facility_kitchen">廚房</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_ac" name="facilities" value="冷氣" />
+                <label for="facility_ac">冷氣</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_bath" name="facilities" value="浴室" />
+                <label for="facility_bath">浴室</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 距離災區距離/車程 -->
+          <div class="form-group full-width">
+            <label for="distance_to_disaster_area" class="form-label">距離災區距離/車程</label>
+            <input
+              type="text"
+              id="distance_to_disaster_area"
+              name="distance_to_disaster_area"
+              class="form-input"
+              placeholder="例：30-50分鐘車程, 15公里"
+            />
+          </div>
+
+          <!-- 資訊來源 -->
+          <div class="form-group full-width">
+            <label for="info_source" class="form-label">資訊來源</label>
+            <input
+              type="text"
+              id="info_source"
+              name="info_source"
+              class="form-input"
+              placeholder="例：花蓮國際民宿協會, threads, 臉書社團FB"
+            />
+          </div>
+
+          <!-- 報到方式 -->
+          <div class="form-group full-width">
+            <label for="registration_method" class="form-label">報到方式</label>
+            <input
+              type="text"
+              id="registration_method"
+              name="registration_method"
+              class="form-input"
+              placeholder="例：現場登記, 線上預約, 電話預約"
+            />
+          </div>
+
+          <!-- 營運狀態 -->
+          <div class="form-group full-width">
+            <label for="status" class="form-label">營運狀態</label>
+            <select id="status" name="status" class="form-select">
+              <option disabled value="">請選擇營運狀態</option>
+              <option value="active">正在營運</option>
+              <option value="paused">暫停營運</option>
+              <option value="ended">已結束</option>
+            </select>
+          </div>
+
+          <!-- 其他備註 -->
+          <div class="form-group full-width">
+            <label for="notes" class="form-label">其他備註</label>
+            <textarea
+              id="notes"
+              name="notes"
+              class="form-textarea"
+              placeholder="其他需要注意的事項或特殊說明"
+            ></textarea>
+          </div>
+
+          <!-- 表單操作按鈕 -->
+          <div class="form-actions">
+            <button type="button" id="resetBtn" class="btn btn-secondary">重置表單</button>
+            <button type="button" id="previewBtn" class="btn btn-primary">預覽資料</button>
+            <button type="submit" class="btn btn-success">提交住宿點</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      // API URL
+      const API_URL = 'https://guangfu250923.pttapp.cc';
+
+      // 地圖變數
+      let map;
+      let marker;
+
+      // 初始化地圖
+      function initMap() {
+        // 設定光復鄉附近的中心點
+        const centerLat = 23.6617;
+        const centerLng = 121.4253;
+
+        try {
+          map = L.map('mapContainer').setView([centerLat, centerLng], 12);
+
+          // 添加地圖圖層
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+          }).addTo(map);
+
+          // 地圖點擊事件
+          map.on('click', function (e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            updateMapMarker(lat, lng);
+            document.getElementById('lat').value = lat.toFixed(6);
+            document.getElementById('lng').value = lng.toFixed(6);
+          });
+
+          console.log('地圖初始化成功');
+        } catch (error) {
+          console.error('地圖初始化失敗:', error);
+        }
+      }
+
+      // 更新地圖標記
+      function updateMapMarker(lat, lng) {
+        if (marker) {
+          map.removeLayer(marker);
+        }
+
+        marker = L.marker([lat, lng]).addTo(map);
+        map.setView([lat, lng], 15);
+      }
+
+      // 獲取當前位置
+      function getCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+
+              document.getElementById('lat').value = lat.toFixed(6);
+              document.getElementById('lng').value = lng.toFixed(6);
+              updateMapMarker(lat, lng);
+
+              showToast('成功獲取當前位置', 'success');
+            },
+            function (error) {
+              console.error('獲取位置失敗:', error);
+              showToast('無法獲取當前位置，請手動設定', 'error');
+            },
+          );
+        } else {
+          showToast('您的瀏覽器不支援定位功能', 'error');
+        }
+      }
+
+      // 顯示 Toast 通知
+      function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      // 生成唯一 ID
+      function generateId() {
+        return 'acc-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      }
+
+      // 獲取表單資料
+      function getFormData() {
+        const form = document.getElementById('accommodationForm');
+        const formData = new FormData(form);
+
+        // 處理設施多選框
+        const facilities = [];
+        document.querySelectorAll('input[name="facilities"]:checked').forEach((checkbox) => {
+          facilities.push(checkbox.value);
+        });
+
+        const lat = parseFloat(formData.get('lat'));
+        const lng = parseFloat(formData.get('lng'));
+
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+          throw new Error('請設定有效的 GPS 座標');
+        }
+
+        if (!formData.get('contact_info')) {
+          throw new Error('請填寫聯絡方式');
+        }
+
+        const data = {
+          id: generateId(),
+          township: formData.get('township') || '',
+          name: formData.get('name') || '',
+          has_vacancy: formData.get('has_vacancy') || '',
+          available_period: formData.get('available_period') || '',
+          restrictions: formData.get('restrictions') || '',
+          contact_info: formData.get('contact_info'),
+          room_info: formData.get('room_info') || '',
+          address: formData.get('address') || '',
+          coordinates: {
+            lat: lat,
+            lng: lng,
+          },
+          pricing: formData.get('pricing') || '',
+          info_source: formData.get('info_source') || '',
+          notes: formData.get('notes') || '',
+          capacity: formData.get('capacity') ? parseInt(formData.get('capacity')) : null,
+          status: formData.get('status') || '',
+          registration_method: formData.get('registration_method') || '',
+          facilities: facilities,
+          distance_to_disaster_area: formData.get('distance_to_disaster_area') || '',
+          created_at: Math.floor(Date.now() / 1000),
+          updated_at: Math.floor(Date.now() / 1000),
+        };
+
+        return data;
+      }
+
+      // 預覽資料
+      function previewData() {
+        try {
+          const data = getFormData();
+
+          // 創建預覽模態框
+          const modal = document.createElement('div');
+          modal.className = 'preview-modal';
+          modal.innerHTML = `
+            <div class="preview-modal-content">
+              <div class="preview-modal-header">
+                <h3>預覽住宿點資料</h3>
+                <button type="button" class="preview-close-btn">&times;</button>
+              </div>
+              <div class="preview-modal-body">
+                <div class="preview-item"><strong>住宿點名稱:</strong> ${
+                  data.name || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>所屬鄉鎮:</strong> ${
+                  data.township || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>地址:</strong> ${data.address || '未填寫'}</div>
+                <div class="preview-item"><strong>GPS座標:</strong> ${data.coordinates.lat}, ${
+            data.coordinates.lng
+          }</div>
+                <div class="preview-item"><strong>聯絡方式:</strong> ${data.contact_info}</div>
+                <div class="preview-item"><strong>空房狀態:</strong> ${
+                  data.has_vacancy || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>開放期間:</strong> ${
+                  data.available_period || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>容納人數:</strong> ${
+                  data.capacity || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>費用:</strong> ${data.pricing || '未填寫'}</div>
+                <div class="preview-item"><strong>房間資訊:</strong> ${
+                  data.room_info || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>入住限制:</strong> ${
+                  data.restrictions || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>提供設施:</strong> ${
+                  data.facilities.length > 0 ? data.facilities.join(', ') : '未選擇'
+                }</div>
+                <div class="preview-item"><strong>距離災區:</strong> ${
+                  data.distance_to_disaster_area || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>資訊來源:</strong> ${
+                  data.info_source || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>報到方式:</strong> ${
+                  data.registration_method || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>營運狀態:</strong> ${
+                  data.status || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>其他備註:</strong> ${data.notes || '未填寫'}</div>
+              </div>
+            </div>
+          `;
+
+          document.body.appendChild(modal);
+
+          // 關閉按鈕事件
+          modal.querySelector('.preview-close-btn').addEventListener('click', () => {
+            document.body.removeChild(modal);
+          });
+
+          // 點擊背景關閉
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+              document.body.removeChild(modal);
+            }
+          });
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      // 重置表單
+      function resetForm() {
+        // 創建確認模態框
+        const confirmModal = document.createElement('div');
+        confirmModal.className = 'preview-modal';
+        confirmModal.innerHTML = `
+          <div class="preview-modal-content">
+            <div class="preview-modal-header">
+              <h3>⚠️ 確認重置</h3>
+            </div>
+            <div class="preview-modal-body">
+              <p style="margin-bottom: 20px; color: #f59e0b; font-weight: 500;">確定要重置表單嗎？所有已填寫的資料將會遺失。</p>
+              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" id="cancelResetBtn">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmResetBtn">確定重置</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(confirmModal);
+
+        // 按鈕事件
+        confirmModal.querySelector('#cancelResetBtn').addEventListener('click', () => {
+          document.body.removeChild(confirmModal);
+        });
+
+        confirmModal.querySelector('#confirmResetBtn').addEventListener('click', () => {
+          document.getElementById('accommodationForm').reset();
+          if (marker) {
+            map.removeLayer(marker);
+            marker = null;
+          }
+          showToast('表單已重置', 'warning');
+          document.body.removeChild(confirmModal);
+        });
+
+        // 點擊背景關閉
+        confirmModal.addEventListener('click', (e) => {
+          if (e.target === confirmModal) {
+            document.body.removeChild(confirmModal);
+          }
+        });
+      }
+
+      // 提交表單
+      async function submitForm(event) {
+        event.preventDefault();
+
+        try {
+          const data = getFormData();
+
+          console.log('提交住宿點資料:', data);
+
+          const response = await fetch(`${API_URL}/accommodations`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+
+          if (response.ok) {
+            showToast('住宿點新增成功！', 'success');
+
+            // 創建成功確認模態框
+            const successModal = document.createElement('div');
+            successModal.className = 'preview-modal';
+            successModal.innerHTML = `
+              <div class="preview-modal-content">
+                <div class="preview-modal-header">
+                  <h3>✅ 新增成功</h3>
+                </div>
+                <div class="preview-modal-body">
+                  <p style="margin-bottom: 20px; color: #10b981; font-weight: 600;">住宿點已成功新增到系統中！</p>
+                  <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-primary" id="addAnotherBtn">新增另一個住宿點</button>
+                    <button type="button" class="btn btn-success" id="backToMainBtn">返回主頁面</button>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            document.body.appendChild(successModal);
+
+            // 按鈕事件
+            successModal.querySelector('#addAnotherBtn').addEventListener('click', () => {
+              document.body.removeChild(successModal);
+              resetForm();
+            });
+
+            successModal.querySelector('#backToMainBtn').addEventListener('click', () => {
+              window.location.href = 'guangfu.html';
+            });
+          } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '提交失敗，請稍後再試');
+          }
+        } catch (error) {
+          console.error('提交錯誤:', error);
+          showToast(error.message || '提交失敗，請檢查網路連線', 'error');
+        }
+      }
+
+      // 座標輸入變化時更新地圖
+      function onCoordinateChange() {
+        const lat = parseFloat(document.getElementById('lat').value);
+        const lng = parseFloat(document.getElementById('lng').value);
+
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            updateMapMarker(lat, lng);
+          }
+        }
+      }
+
+      // 事件監聽器
+      document.addEventListener('DOMContentLoaded', function () {
+        // 初始化地圖（延遲初始化以確保容器已渲染）
+        setTimeout(initMap, 100);
+
+        // 表單事件
+        document.getElementById('accommodationForm').addEventListener('submit', submitForm);
+        document.getElementById('resetBtn').addEventListener('click', resetForm);
+        document.getElementById('previewBtn').addEventListener('click', previewData);
+        document
+          .getElementById('getCurrentLocationBtn')
+          .addEventListener('click', getCurrentLocation);
+
+        // 座標輸入事件
+        document.getElementById('lat').addEventListener('input', onCoordinateChange);
+        document.getElementById('lng').addEventListener('input', onCoordinateChange);
+      });
+    </script>
+  </body>
+</html>
