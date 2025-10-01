@@ -785,6 +785,48 @@
       </div>
     </div>
 
+    <!-- 回報問題對話框 -->
+    <div id="reportIssueModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-800">回報問題</h3>
+          <button id="closeReportIssueBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <form id="reportIssueForm" class="space-y-4">
+          <div>
+            <label for="issueCategory" class="block text-sm font-medium text-gray-700 mb-1">問題點類型</label>
+            <input type="text" id="issueCategory" name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+          </div>
+          
+          <div>
+            <label for="issueName" class="block text-sm font-medium text-gray-700 mb-1">問題點名稱</label>
+            <input type="text" id="issueName" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+          </div>
+          
+          <div>
+            <label for="issueReason" class="block text-sm font-medium text-gray-700 mb-1">問題原因 <span class="text-red-500">*</span></label>
+            <textarea id="issueReason" name="reason" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="請描述您發現的問題..." required></textarea>
+          </div>
+          
+          <input type="hidden" id="issueId" name="id">
+          
+          <div class="flex space-x-3 pt-4">
+            <button type="button" id="cancelReportIssueBtn" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+              取消
+            </button>
+            <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+              提交回報
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script type="module">
       // DOM Elements
       const itemModal = document.getElementById('itemModal');
@@ -1337,6 +1379,11 @@
                   ${(accommodation.source_link || accommodation.資料來源) ? `<div><span class="font-semibold">資料來源:</span> <a href="${accommodation.source_link}" target="_blank" rel="noopener noreferrer">${accommodation.source_link || '連結'}</a></div>` : ''}
                   ${(accommodation.last_updated) ? `<div><span class="font-semibold">最後更新:</span> ${accommodation.last_updated}</div>` : ''}
                 </div>
+                <div class="mt-3 pt-2 border-t border-gray-200">
+                  <button onclick="openReportIssueModal('住宿點', '${accommodation.id || 'unknown'}', '${(accommodation.name || accommodation.民宿名稱 || '未知住宿點').replace(/'/g, '\\\'')}')" class="w-full px-3 py-2 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 transition-colors">
+                    回報問題
+                  </button>
+                </div>
               </div>
             `);
 
@@ -1388,6 +1435,11 @@
                   ${station.notes ? `<div><span class="font-semibold">備註:</span> ${station.notes || "-"}</div>` : ''}
                   ${station.is_free ? `<div><span class="font-semibold">是否免費:</span> ${station.is_free ? "是" : "否"}</div>` : ''}
                 </div>
+                <div class="mt-3 pt-2 border-t border-gray-200">
+                  <button onclick="openReportIssueModal('加水站', '${station.id || 'unknown'}', '${(station.name || '未知加水站').replace(/'/g, '\\\'')}')" class="w-full px-3 py-2 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 transition-colors">
+                    回報問題
+                  </button>
+                </div>
               </div>
             `);
 
@@ -1434,6 +1486,11 @@
                   ${restroom.hours ? `<div><span class="font-semibold">開放時間:</span> ${restroom.hours}</div>` : ''}
                   ${restroom.facilities ? `<div><span class="font-semibold">設施:</span> ${restroom.facilities}</div>` : ''}
                   ${restroom.notes ? `<div><span class="font-semibold">備註:</span> ${restroom.notes}</div>` : ''}
+                </div>
+                <div class="mt-3 pt-2 border-t border-gray-200">
+                  <button onclick="openReportIssueModal('廁所', '${restroom.id || 'unknown'}', '${(restroom.name || '未知廁所').replace(/'/g, '\\\'')}')" class="w-full px-3 py-2 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 transition-colors">
+                    回報問題
+                  </button>
                 </div>
               </div>
             `);
@@ -1490,6 +1547,11 @@
                   ${station.notes ? `<div><span class="font-semibold">備註:</span> ${station.notes}</div>` : ''}
                   ${station.distance_to_guangfu ? `<div><span class="font-semibold">距光復:</span> ${station.distance_to_guangfu}</div>` : ''}
                 </div>
+                <div class="mt-3 pt-2 border-t border-gray-200">
+                  <button onclick="openReportIssueModal('洗澡點', '${station.id || 'unknown'}', '${(station.name || '未知洗澡點').replace(/'/g, '\\\'')}')" class="w-full px-3 py-2 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 transition-colors">
+                    回報問題
+                  </button>
+                </div>
               </div>
             `);
 
@@ -1537,6 +1599,11 @@
                   ${station.contact_person ? `<div><span class="font-semibold">聯絡:</span> ${station.contact_person}</div>` : ''}
                   ${station.phone ? `<div><span class="font-semibold">聯絡:</span> ${station.phone}</div>` : ''}
                   ${station.notes ? `<div><span class="font-semibold">備註:</span> ${station.notes}</div>` : ''}
+                </div>
+                <div class="mt-3 pt-2 border-t border-gray-200">
+                  <button onclick="openReportIssueModal('醫療站', '${station.id || 'unknown'}', '${(station.name || '未知醫療站').replace(/'/g, '\\\'')}')" class="w-full px-3 py-2 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 transition-colors">
+                    回報問題
+                  </button>
                 </div>
               </div>
             `);
@@ -2534,6 +2601,59 @@
         }
       }
 
+      // 回報問題相關函數
+      function openReportIssueModal(category, id, name) {
+        const modal = document.getElementById('reportIssueModal');
+        document.getElementById('issueCategory').value = category;
+        document.getElementById('issueName').value = name;
+        document.getElementById('issueId').value = id;
+        document.getElementById('issueReason').value = '';
+        modal.classList.remove('hidden');
+      }
+ 
+      window.openReportIssueModal = openReportIssueModal;
+
+      function closeReportIssueModal() {
+        const modal = document.getElementById('reportIssueModal');
+        modal.classList.add('hidden');
+        document.getElementById('reportIssueForm').reset();
+      }
+
+      async function submitIssueReport(event) {
+        event.preventDefault();
+        
+        const form = document.getElementById('reportIssueForm');
+        const formData = new FormData(form);
+        
+        const reportData = {
+          location_type: formData.get('category'),
+          location_id: formData.get('id'),
+          name: formData.get('name'),
+          reason: formData.get('reason'), 
+          status: 'false',
+        };
+
+        try {
+          const response = await fetch(`${API_URL}/reports`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(reportData)
+          });
+
+          if (response.ok) {
+            showToast('問題回報已提交，感謝您的反饋！', 'success');
+            closeReportIssueModal();
+          } else {
+            throw new Error('提交失敗');
+          }
+        } catch (error) {
+          console.error('提交問題回報失敗:', error);
+          showToast('提交失敗，請稍後再試', 'error');
+        }
+      }
+
       // 返回按鈕功能
       function handleGoBack() {
         // 檢查瀏覽器歷史記錄
@@ -2766,6 +2886,11 @@
         document.getElementById('closeHelpRequestBtn').addEventListener('click', closeHelpRequestModal);
         document.getElementById('cancelHelpRequestBtn').addEventListener('click', closeHelpRequestModal);
         document.getElementById('helpRequestForm').addEventListener('submit', submitHelpRequest);
+        
+        // 回報問題相關事件監聽器
+        document.getElementById('closeReportIssueBtn').addEventListener('click', closeReportIssueModal);
+        document.getElementById('cancelReportIssueBtn').addEventListener('click', closeReportIssueModal);
+        document.getElementById('reportIssueForm').addEventListener('submit', submitIssueReport);
         
         // 點擊地圖時關閉側邊欄（手機版）
         map.on('click', function() {
