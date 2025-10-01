@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=*" />
+    <title>新增洗澡站 - 救災地點總覽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100svh;
+        width: 100svw;
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        background: white;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        min-height: 100vh;
+        min-width: 100svw;
+        background: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .form-container {
+        background: white;
+        padding: 32px;
+        width: 100%;
+        max-width: 800px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .form-label.required::after {
+        content: ' *';
+        color: #ef4444;
+      }
+
+      .form-input,
+      .form-textarea,
+      .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: white;
+      }
+
+      .form-input:focus,
+      .form-textarea:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      .map-container {
+        height: 300px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .coordinate-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        background: #6b7280;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #4b5563;
+      }
+
+      .btn-success {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #059669;
+        transform: translateY(-1px);
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .checkbox-item input[type='checkbox'] {
+        width: 16px;
+        height: 16px;
+        accent-color: #3b82f6;
+      }
+
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        transform: translateX(110%);
+        transition: transform 0.3s ease;
+      }
+
+      .toast.show {
+        transform: translateX(0);
+      }
+
+      .toast.success {
+        background: #10b981;
+      }
+
+      .toast.error {
+        background: #ef4444;
+      }
+
+      .toast.warning {
+        background: #f59e0b;
+      }
+
+      .preview-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .preview-modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 600px;
+        max-height: 80vh;
+        width: 90%;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+
+      .preview-modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9fafb;
+      }
+
+      .preview-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .preview-close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .preview-close-btn:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      .preview-modal-body {
+        padding: 24px;
+        max-height: calc(80vh - 100px);
+        overflow-y: auto;
+      }
+
+      .preview-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .preview-item:last-child {
+        border-bottom: none;
+      }
+
+      .preview-item strong {
+        color: #374151;
+        font-weight: 600;
+        display: inline-block;
+        min-width: 120px;
+      }
+
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .coordinate-inputs {
+          grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VHR24V48H3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag('js', new Date());
+
+    gtag('config', 'G-VHR24V48H3');
+  </script>
+
+  <body>
+    <div class="container">
+      <div class="form-container">
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">新增洗澡站</h1>
+          <p class="text-gray-600">
+            請填寫洗澡站的詳細資訊，標註 <span class="text-red-500">*</span> 的欄位為必填項目
+          </p>
+        </div>
+
+        <form id="showerStationForm" class="space-y-6">
+          <div class="form-grid">
+            <!-- 洗澡站名稱 -->
+            <div class="form-group">
+              <label for="name" class="form-label required">洗澡站名稱</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                class="form-input"
+                placeholder="請輸入洗澡站名稱"
+                required
+              />
+            </div>
+
+            <!-- 設備類型 -->
+            <div class="form-group">
+              <label for="facility_type" class="form-label required">設備類型</label>
+              <select id="facility_type" name="facility_type" class="form-select" required>
+                <option disabled value="">請選擇設備類型</option>
+                <option value="mobile_shower">行動式洗澡車</option>
+                <option value="coin_operated">投幣式洗澡間</option>
+                <option value="regular_bathroom">一般衛浴間</option>
+              </select>
+            </div>
+
+            <!-- 聯絡電話 -->
+            <div class="form-group">
+              <label for="phone" class="form-label">聯絡電話</label>
+              <input
+                type="text"
+                id="phone"
+                name="phone"
+                class="form-input"
+                placeholder="請輸入聯絡電話"
+              />
+            </div>
+
+            <!-- 開放時段 -->
+            <div class="form-group">
+              <label for="time_slots" class="form-label">開放時段</label>
+              <input
+                type="text"
+                id="time_slots"
+                name="time_slots"
+                class="form-input"
+                placeholder="例：上午10:00-11:30, 下午15:30-17:30"
+              />
+            </div>
+
+            <!-- 開放期間 -->
+            <div class="form-group">
+              <label for="available_period" class="form-label">開放期間</label>
+              <input
+                type="text"
+                id="available_period"
+                name="available_period"
+                class="form-input"
+                placeholder="例：9/26-9/28, 即日起至10/3"
+              />
+            </div>
+
+            <!-- 同時可容納人數 -->
+            <div class="form-group">
+              <label for="capacity" class="form-label">同時可容納人數</label>
+              <input
+                type="number"
+                id="capacity"
+                name="capacity"
+                class="form-input"
+                min="0"
+                placeholder="請輸入同時可容納人數"
+              />
+            </div>
+          </div>
+
+          <!-- 地址 -->
+          <div class="form-group full-width">
+            <label for="address" class="form-label">地址</label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              class="form-input"
+              placeholder="請輸入地址"
+            />
+          </div>
+
+          <!-- GPS 座標 -->
+          <div class="form-group full-width">
+            <label for="coordinates" class="form-label required">GPS 座標</label>
+            <div class="map-container" id="mapContainer"></div>
+            <div class="coordinate-inputs">
+              <div>
+                <label for="lat" class="form-label">緯度 (Latitude)</label>
+                <input
+                  type="number"
+                  id="lat"
+                  name="lat"
+                  class="form-input"
+                  step="0.000001"
+                  placeholder="23.xxxx"
+                  required
+                />
+              </div>
+              <div>
+                <label for="lng" class="form-label">經度 (Longitude)</label>
+                <input
+                  type="number"
+                  id="lng"
+                  name="lng"
+                  class="form-input"
+                  step="0.000001"
+                  placeholder="121.xxxx"
+                  required
+                />
+              </div>
+            </div>
+            <button type="button" id="getCurrentLocationBtn" class="btn btn-primary mt-2">
+              獲取當前位置
+            </button>
+            <p class="text-sm text-gray-500 mt-2">點擊地圖上的位置來設定座標，或手動輸入座標值</p>
+          </div>
+
+          <!-- 營運狀態 -->
+          <div class="form-group full-width">
+            <label for="status" class="form-label required">營運狀態</label>
+            <select id="status" name="status" class="form-select" required>
+              <option disabled value="">請選擇營運狀態</option>
+              <option value="active">正常營運</option>
+              <option value="temporarily_closed">暫時關閉</option>
+              <option value="ended">已結束</option>
+            </select>
+          </div>
+
+          <!-- 性別使用時段 -->
+          <div class="form-group full-width">
+            <label class="form-label">性別使用時段</label>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="male_hours" class="form-label">男性時段</label>
+                <input
+                  type="text"
+                  id="male_hours"
+                  name="male_hours"
+                  class="form-input"
+                  placeholder="例：10:00-10:30"
+                />
+              </div>
+              <div class="form-group">
+                <label for="female_hours" class="form-label">女性時段</label>
+                <input
+                  type="text"
+                  id="female_hours"
+                  name="female_hours"
+                  class="form-input"
+                  placeholder="例：10:30-11:30"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 是否免費 -->
+          <div class="form-group full-width">
+            <label for="is_free" class="form-label required">是否免費</label>
+            <select id="is_free" name="is_free" class="form-select" required>
+              <option disabled value="">請選擇</option>
+              <option value="true">免費</option>
+              <option value="false">收費</option>
+            </select>
+          </div>
+
+          <!-- 費用說明 -->
+          <div class="form-group full-width">
+            <label for="pricing" class="form-label">費用說明</label>
+            <input
+              type="text"
+              id="pricing"
+              name="pricing"
+              class="form-input"
+              placeholder="例：投幣式，每次10元"
+            />
+          </div>
+
+          <!-- 設施設備 -->
+          <div class="form-group full-width">
+            <label class="form-label">設施設備</label>
+            <div class="checkbox-group">
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_hot_water" name="facilities" value="熱水器" />
+                <label for="facility_hot_water">熱水器</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_hair_dryer" name="facilities" value="吹風機" />
+                <label for="facility_hair_dryer">吹風機</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="facility_wash_products"
+                  name="facilities"
+                  value="洗沐用品"
+                />
+                <label for="facility_wash_products">洗沐用品</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 距離光復車程 -->
+          <div class="form-group full-width">
+            <label for="distance_to_guangfu" class="form-label">距離光復車程</label>
+            <input
+              type="text"
+              id="distance_to_guangfu"
+              name="distance_to_guangfu"
+              class="form-input"
+              placeholder="例：20分鐘, 40分鐘"
+            />
+          </div>
+
+          <!-- 是否需預約 -->
+          <div class="form-group full-width">
+            <label for="requires_appointment" class="form-label required">是否需預約</label>
+            <select
+              id="requires_appointment"
+              name="requires_appointment"
+              class="form-select"
+              required
+            >
+              <option disabled value="">請選擇</option>
+              <option value="true">需要預約</option>
+              <option value="false">無需預約</option>
+            </select>
+          </div>
+
+          <!-- 預約方式 -->
+          <div class="form-group full-width">
+            <label for="contact_method" class="form-label">預約方式</label>
+            <input
+              type="text"
+              id="contact_method"
+              name="contact_method"
+              class="form-input"
+              placeholder="例：LINE: @wowhostel, 電話預約"
+            />
+          </div>
+
+          <!-- 資料來源 -->
+          <div class="form-group full-width">
+            <label for="info_source" class="form-label">資料來源</label>
+            <input
+              type="url"
+              id="info_source"
+              name="info_source"
+              class="form-input"
+              placeholder="請輸入資料來源連結"
+            />
+          </div>
+
+          <!-- 其他備註 -->
+          <div class="form-group full-width">
+            <label for="notes" class="form-label">備註說明</label>
+            <textarea
+              id="notes"
+              name="notes"
+              class="form-textarea"
+              placeholder="例：多座行動沐浴車, 值勤皮膚所需"
+            ></textarea>
+          </div>
+
+          <!-- 表單操作按鈕 -->
+          <div class="form-actions">
+            <button type="button" id="resetBtn" class="btn btn-secondary">重置表單</button>
+            <button type="button" id="previewBtn" class="btn btn-primary">預覽資料</button>
+            <button type="submit" class="btn btn-success">提交洗澡站</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      // API URL
+      const API_URL = 'https://guangfu250923.pttapp.cc';
+
+      // 地圖變數
+      let map;
+      let marker;
+
+      // 初始化地圖
+      function initMap() {
+        // 設定光復鄉附近的中心點
+        const centerLat = 23.6617;
+        const centerLng = 121.4253;
+
+        try {
+          map = L.map('mapContainer').setView([centerLat, centerLng], 12);
+
+          // 添加地圖圖層
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+          }).addTo(map);
+
+          // 地圖點擊事件
+          map.on('click', function (e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            updateMapMarker(lat, lng);
+            document.getElementById('lat').value = lat.toFixed(6);
+            document.getElementById('lng').value = lng.toFixed(6);
+          });
+
+          console.log('地圖初始化成功');
+        } catch (error) {
+          console.error('地圖初始化失敗:', error);
+        }
+      }
+
+      // 更新地圖標記
+      function updateMapMarker(lat, lng) {
+        if (marker) {
+          map.removeLayer(marker);
+        }
+
+        marker = L.marker([lat, lng]).addTo(map);
+        map.setView([lat, lng], 15);
+      }
+
+      // 獲取當前位置
+      function getCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+
+              document.getElementById('lat').value = lat.toFixed(6);
+              document.getElementById('lng').value = lng.toFixed(6);
+              updateMapMarker(lat, lng);
+
+              showToast('成功獲取當前位置', 'success');
+            },
+            function (error) {
+              console.error('獲取位置失敗:', error);
+              showToast('無法獲取當前位置，請手動設定', 'error');
+            },
+          );
+        } else {
+          showToast('您的瀏覽器不支援定位功能', 'error');
+        }
+      }
+
+      // 顯示 Toast 通知
+      function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      // 生成唯一 ID
+      // function generateId() {
+      //   return 'medical-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      // }
+
+      // 獲取表單資料
+      function getFormData() {
+        const form = document.getElementById('showerStationForm');
+        const formData = new FormData(form);
+
+        // 處理設施設備多選框
+        const facilities = [];
+        document.querySelectorAll('input[name="facilities"]:checked').forEach((checkbox) => {
+          facilities.push(checkbox.value);
+        });
+
+        // 處理性別使用時段
+        const genderSchedule = {};
+        const maleHours = formData.get('male_hours');
+        const femaleHours = formData.get('female_hours');
+        if (maleHours) genderSchedule.male = [maleHours];
+        if (femaleHours) genderSchedule.female = [femaleHours];
+
+        const lat = parseFloat(formData.get('lat'));
+        const lng = parseFloat(formData.get('lng'));
+
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+          throw new Error('請設定有效的 GPS 座標');
+        }
+
+        if (!formData.get('name')) {
+          throw new Error('請填寫洗澡站名稱');
+        }
+
+        if (!formData.get('facility_type')) {
+          throw new Error('請選擇設備類型');
+        }
+
+        if (!formData.get('status')) {
+          throw new Error('請選擇營運狀態');
+        }
+
+        if (!formData.get('is_free')) {
+          throw new Error('請選擇是否免費');
+        }
+
+        if (!formData.get('requires_appointment')) {
+          throw new Error('請選擇是否需預約');
+        }
+
+        const data = {
+          id: 'shower-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+          name: formData.get('name'),
+          address: formData.get('address') || '',
+          coordinates: {
+            lat: lat,
+            lng: lng,
+          },
+          phone: formData.get('phone') || '',
+          facility_type: formData.get('facility_type'),
+          time_slots: formData.get('time_slots') || '',
+          gender_schedule: Object.keys(genderSchedule).length > 0 ? genderSchedule : null,
+          available_period: formData.get('available_period') || '',
+          capacity: formData.get('capacity') ? parseInt(formData.get('capacity')) : null,
+          is_free: formData.get('is_free') === 'true',
+          pricing: formData.get('pricing') || '',
+          notes: formData.get('notes') || '',
+          info_source: formData.get('info_source') || '',
+          status: formData.get('status'),
+          facilities: facilities,
+          distance_to_guangfu: formData.get('distance_to_guangfu') || '',
+          requires_appointment: formData.get('requires_appointment') === 'true',
+          contact_method: formData.get('contact_method') || '',
+        };
+
+        return data;
+      }
+
+      // 預覽資料
+      function previewData() {
+        try {
+          const data = getFormData();
+
+          // 創建預覽模態框
+          const modal = document.createElement('div');
+          modal.className = 'preview-modal';
+          modal.innerHTML = `
+            <div class="preview-modal-content">
+              <div class="preview-modal-header">
+                <h3>預覽洗澡站資料</h3>
+                <button type="button" class="preview-close-btn">&times;</button>
+              </div>
+              <div class="preview-modal-body">
+                <div class="preview-item"><strong>洗澡站名稱:</strong> ${data.name}</div>
+                <div class="preview-item"><strong>設備類型:</strong> ${data.facility_type}</div>
+                <div class="preview-item"><strong>地址:</strong> ${data.address || '未填寫'}</div>
+                <div class="preview-item"><strong>GPS座標:</strong> ${data.coordinates.lat}, ${
+            data.coordinates.lng
+          }</div>
+                <div class="preview-item"><strong>聯絡電話:</strong> ${data.phone || '未填寫'}</div>
+                <div class="preview-item"><strong>開放時段:</strong> ${
+                  data.time_slots || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>男性時段:</strong> ${
+                  data.gender_schedule?.male ? data.gender_schedule.male.join(', ') : '未填寫'
+                }</div>
+                <div class="preview-item"><strong>女性時段:</strong> ${
+                  data.gender_schedule?.female ? data.gender_schedule.female.join(', ') : '未填寫'
+                }</div>
+                <div class="preview-item"><strong>開放期間:</strong> ${
+                  data.available_period || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>同時可容納人數:</strong> ${
+                  data.capacity !== null ? data.capacity + '人' : '未填寫'
+                }</div>
+                <div class="preview-item"><strong>是否免費:</strong> ${
+                  data.is_free ? '免費' : '收費'
+                }</div>
+                <div class="preview-item"><strong>費用說明:</strong> ${
+                  data.pricing || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>營運狀態:</strong> ${data.status}</div>
+                <div class="preview-item"><strong>設施設備:</strong> ${
+                  data.facilities.length > 0 ? data.facilities.join(', ') : '未選擇'
+                }</div>
+                <div class="preview-item"><strong>距離光復車程:</strong> ${
+                  data.distance_to_guangfu || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>是否需預約:</strong> ${
+                  data.requires_appointment ? '需要預約' : '無需預約'
+                }</div>
+                <div class="preview-item"><strong>預約方式:</strong> ${
+                  data.contact_method || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>資料來源:</strong> ${
+                  data.info_source || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>備註說明:</strong> ${data.notes || '未填寫'}</div>
+              </div>
+            </div>
+          `;
+
+          document.body.appendChild(modal);
+
+          // 關閉按鈕事件
+          modal.querySelector('.preview-close-btn').addEventListener('click', () => {
+            document.body.removeChild(modal);
+          });
+
+          // 點擊背景關閉
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+              document.body.removeChild(modal);
+            }
+          });
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      // 重置表單
+      function resetForm() {
+        // 創建確認模態框
+        const confirmModal = document.createElement('div');
+        confirmModal.className = 'preview-modal';
+        confirmModal.innerHTML = `
+          <div class="preview-modal-content">
+            <div class="preview-modal-header">
+              <h3>⚠️ 確認重置</h3>
+            </div>
+            <div class="preview-modal-body">
+              <p style="margin-bottom: 20px; color: #f59e0b; font-weight: 500;">確定要重置表單嗎？所有已填寫的資料將會遺失。</p>
+              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" id="cancelResetBtn">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmResetBtn">確定重置</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(confirmModal);
+
+        // 按鈕事件
+        confirmModal.querySelector('#cancelResetBtn').addEventListener('click', () => {
+          document.body.removeChild(confirmModal);
+        });
+
+        confirmModal.querySelector('#confirmResetBtn').addEventListener('click', () => {
+          document.getElementById('showerStationForm').reset();
+          if (marker) {
+            map.removeLayer(marker);
+            marker = null;
+          }
+          showToast('表單已重置', 'warning');
+          document.body.removeChild(confirmModal);
+        });
+
+        // 點擊背景關閉
+        confirmModal.addEventListener('click', (e) => {
+          if (e.target === confirmModal) {
+            document.body.removeChild(confirmModal);
+          }
+        });
+      }
+
+      // 提交表單
+      async function submitForm(event) {
+        event.preventDefault();
+
+        try {
+          const data = getFormData();
+
+          console.log('提交洗澡站資料:', data);
+
+          const response = await fetch(`${API_URL}/shower_stations`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+
+          if (response.ok) {
+            showToast('洗澡站新增成功！', 'success');
+
+            // 創建成功確認模態框
+            const successModal = document.createElement('div');
+            successModal.className = 'preview-modal';
+            successModal.innerHTML = `
+              <div class="preview-modal-content">
+                <div class="preview-modal-header">
+                  <h3>✅ 新增成功</h3>
+                </div>
+                <div class="preview-modal-body">
+                  <p style="margin-bottom: 20px; color: #10b981; font-weight: 600;">洗澡站已成功新增到系統中！</p>
+                  <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-primary" id="addAnotherBtn">新增另一個洗澡站</button>
+                    <button type="button" class="btn btn-success" id="backToMainBtn">返回主頁面</button>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            document.body.appendChild(successModal);
+
+            // 按鈕事件
+            successModal.querySelector('#addAnotherBtn').addEventListener('click', () => {
+              document.body.removeChild(successModal);
+              resetForm();
+            });
+
+            successModal.querySelector('#backToMainBtn').addEventListener('click', () => {
+              window.location.href = 'map.html';
+            });
+          } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '提交失敗，請稍後再試');
+          }
+        } catch (error) {
+          console.error('提交錯誤:', error);
+          showToast(error.message || '提交失敗，請檢查網路連線', 'error');
+        }
+      }
+
+      // 座標輸入變化時更新地圖
+      function onCoordinateChange() {
+        const lat = parseFloat(document.getElementById('lat').value);
+        const lng = parseFloat(document.getElementById('lng').value);
+
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            updateMapMarker(lat, lng);
+          }
+        }
+      }
+
+      // 事件監聽器
+      document.addEventListener('DOMContentLoaded', function () {
+        // 初始化地圖（延遲初始化以確保容器已渲染）
+        setTimeout(initMap, 100);
+
+        // 表單事件
+        document.getElementById('showerStationForm').addEventListener('submit', submitForm);
+        document.getElementById('resetBtn').addEventListener('click', resetForm);
+        document.getElementById('previewBtn').addEventListener('click', previewData);
+        document
+          .getElementById('getCurrentLocationBtn')
+          .addEventListener('click', getCurrentLocation);
+
+        // 座標輸入事件
+        document.getElementById('lat').addEventListener('input', onCoordinateChange);
+        document.getElementById('lng').addEventListener('input', onCoordinateChange);
+      });
+    </script>
+  </body>
+</html>
