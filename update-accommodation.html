@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Permissions-Policy" content="geolocation=*" />
-    <title>住宿點管理 - 救災地點總覽</title>
+    <title>住宿點管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link
@@ -56,6 +56,40 @@
       .header p {
         color: #64748b;
         font-size: 1.1rem;
+      }
+
+      /* 搜索框樣式 */
+      .search-container {
+        max-width: 500px;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px 16px 12px 48px;
+        border: 2px solid #e5e7eb;
+        border-radius: 24px;
+        font-size: 16px;
+        background: white;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7280;
+        width: 20px;
+        height: 20px;
       }
 
       .accommodation-list {
@@ -611,7 +645,24 @@
         <!-- 頁面標題 -->
         <div class="header">
           <h1>住宿點管理</h1>
-          <p>管理所有已註冊的住宿點資訊</p>
+          <div class="search-container">
+            <div style="position: relative">
+              <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+              <input
+                type="text"
+                id="searchInput"
+                class="search-input"
+                placeholder="搜索住宿點... (可搜索名稱、地址、聯絡方式等)"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- 住宿點列表 -->
@@ -633,6 +684,9 @@
     <script>
       // API URL
       const API_URL = 'https://guangfu250923.pttapp.cc';
+
+      // 全域變數存儲所有住宿點資料
+      let allAccommodations = [];
 
       // 獲取住宿點列表資料
       const getAccommodationList = async () => {
@@ -848,24 +902,52 @@
         try {
           const data = await getAccommodationList();
           const accommodations = data.member || [];
+          allAccommodations = accommodations; // 儲存所有資料
 
           if (accommodations.length === 0) {
             container.innerHTML = renderEmptyState();
             return;
           }
 
-          // 按更新時間排序（最新的在前）
-          accommodations.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
-
-          const html = accommodations.map(renderAccommodationCard).join('');
-          container.innerHTML = html;
-
-          // 綁定編輯按鈕事件
-          bindEditButtons();
+          displayAccommodations(accommodations);
         } catch (error) {
-          console.error('載入住宿點列表失敗:', error);
-          container.innerHTML = renderEmptyState();
+          console.error('載入住宿點失敗:', error);
+          showNotification('載入住宿點資料失敗', 'error');
+          container.innerHTML =
+            '<div style="text-align: center; color: #666; padding: 40px;">載入失敗，請重試</div>';
         }
+      }
+
+      // 顯示住宿點列表
+      function displayAccommodations(accommodations) {
+        const container = document.getElementById('accommodationList');
+
+        // 按更新時間排序（最新的在前）
+        accommodations.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+
+        const html = accommodations.map(renderAccommodationCard).join('');
+        container.innerHTML = html;
+
+        // 綁定編輯按鈕事件
+        bindEditButtons();
+      }
+
+      // 搜索住宿點功能
+      function searchAccommodations() {
+        const searchInput = document.getElementById('searchInput');
+        const query = searchInput.value.toLowerCase().trim();
+
+        if (!query) {
+          displayAccommodations(allAccommodations);
+          return;
+        }
+
+        const filteredAccommodations = allAccommodations.filter((accommodation) => {
+          const dataJSONString = JSON.stringify(accommodation).toLowerCase();
+          return dataJSONString.includes(query);
+        });
+
+        displayAccommodations(filteredAccommodations);
       }
 
       // 綁定編輯按鈕事件
@@ -1491,6 +1573,13 @@
       // 初始化頁面
       document.addEventListener('DOMContentLoaded', function () {
         loadAccommodationList();
+
+        // 綁定搜索事件
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          searchInput.addEventListener('input', searchAccommodations);
+          searchInput.addEventListener('keyup', searchAccommodations);
+        }
 
         // 每30秒自動刷新一次
         setInterval(loadAccommodationList, 30000);
