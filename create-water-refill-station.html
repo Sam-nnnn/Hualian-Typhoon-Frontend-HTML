@@ -408,14 +408,13 @@
 
           <!-- 地址 -->
           <div class="form-group full-width">
-            <label for="address" class="form-label required">地址</label>
+            <label for="address" class="form-label">地址</label>
             <input
               type="text"
               id="address"
               name="address"
               class="form-input"
               placeholder="請輸入詳細地址"
-              required
             />
           </div>
 
@@ -653,9 +652,9 @@
       }
 
       // 生成唯一 ID
-      function generateId() {
-        return 'water-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-      }
+      // function generateId() {
+      //   return 'water-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      // }
 
       // 獲取表單資料
       function getFormData() {
@@ -704,7 +703,6 @@
         }
 
         const data = {
-          id: generateId(),
           name: formData.get('name'),
           address: formData.get('address'),
           coordinates: {
@@ -726,8 +724,6 @@
           distance_to_disaster_area: formData.get('distance_to_disaster_area') || '',
           notes: formData.get('notes') || '',
           info_source: formData.get('info_source') || '',
-          created_at: Math.floor(Date.now() / 1000),
-          updated_at: Math.floor(Date.now() / 1000),
         };
 
         return data;

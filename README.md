@@ -138,3 +138,19 @@
 - **桌面版**：完整功能展示，側邊欄資訊面板
 - **平板版**：適應性布局調整
 - **手機版**：觸控優化，自動隱藏側邊欄
+
+## 🌐 部署環境
+
+### Production 生產環境
+
+**網址：** [地圖頁](https://guangfu250923-map.pttapp.cc/map)
+[新增廁所表單頁](https://guangfu250923-map.pttapp.cc/create-restroom)
+[新增住宿點表單頁](https://guangfu250923-map.pttapp.cc/create-accommodation)
+[新增補水站表單頁](https://guangfu250923-map.pttapp.cc/create-water-refill-station)
+
+### Dev 開發環境
+
+**網址：** [地圖頁](https://hualian-typhoon-frontend-dev.zeabur.app/map)
+[新增廁所表單頁](https://hualian-typhoon-frontend-dev.zeabur.app/create-restroom)
+[新增住宿點表單頁](https://hualian-typhoon-frontend-dev.zeabur.app/create-accommodation)
+[新增補水站表單頁](https://hualian-typhoon-frontend-dev.zeabur.app/create-water-refill-station)

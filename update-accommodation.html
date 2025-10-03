@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=*" />
+    <title>住宿點管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100svh;
+        width: 100svw;
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        background: white;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        min-height: 100vh;
+        min-width: 100svw;
+        background: #f8fafc;
+        padding: 24px;
+      }
+
+      .main-content {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 8px;
+      }
+
+      .header p {
+        color: #64748b;
+        font-size: 1.1rem;
+      }
+
+      /* 搜索框樣式 */
+      .search-container {
+        max-width: 500px;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px 16px 12px 48px;
+        border: 2px solid #e5e7eb;
+        border-radius: 24px;
+        font-size: 16px;
+        background: white;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7280;
+        width: 20px;
+        height: 20px;
+      }
+
+      .accommodation-list {
+        display: grid;
+        gap: 24px;
+      }
+
+      .accommodation-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+      }
+
+      .card-header {
+        background: #f9fafb;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .timestamp-info {
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-align: left;
+        line-height: 1.4;
+      }
+
+      .card-body {
+        padding: 20px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+      }
+
+      .info-item {
+        display: flex;
+        padding: 8px 0;
+        border-bottom: 1px solid #f3f4f6;
+      }
+
+      .info-item:last-child {
+        border-bottom: none;
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: #374151;
+        min-width: 120px;
+        margin-right: 12px;
+      }
+
+      .info-value {
+        color: #6b7280;
+        flex: 1;
+        word-break: break-word;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .status-active {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .status-paused {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .status-ended {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .vacancy-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .vacancy-available {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .vacancy-full {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .vacancy-unknown {
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      .vacancy-need-confirm {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .facilities-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .facility-tag {
+        background: #dbeafe;
+        color: #1d4ed8;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .coordinates-display {
+        font-family: monospace;
+        background: #f3f4f6;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.875rem;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 60px 24px;
+        color: #6b7280;
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 24px;
+        color: #6b7280;
+      }
+
+      .empty-state svg {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 16px;
+        opacity: 0.5;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+
+      .btn-secondary {
+        background: #6b7280;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #4b5563;
+      }
+
+      .btn-success {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #059669;
+      }
+
+      .btn-danger {
+        background: #ef4444;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #dc2626;
+      }
+
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        transform: translateX(110%);
+        transition: transform 0.3s ease;
+      }
+
+      .toast.show {
+        transform: translateX(0);
+      }
+
+      .toast.success {
+        background: #10b981;
+      }
+
+      .toast.error {
+        background: #ef4444;
+      }
+
+      .toast.warning {
+        background: #f59e0b;
+      }
+
+      .preview-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .preview-modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 600px;
+        max-height: 80vh;
+        width: 90%;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+
+      .preview-modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9fafb;
+      }
+
+      .preview-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .preview-close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .preview-close-btn:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      .preview-modal-body {
+        padding: 24px;
+        max-height: calc(80vh - 100px);
+        overflow-y: auto;
+      }
+
+      .preview-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .preview-item:last-child {
+        border-bottom: none;
+      }
+
+      .preview-item strong {
+        color: #374151;
+        font-weight: 600;
+        display: inline-block;
+        min-width: 120px;
+      }
+
+      /* 編輯模態框樣式 */
+      .edit-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .edit-modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 800px;
+        max-height: 90vh;
+        width: 95%;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+
+      .edit-modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9fafb;
+      }
+
+      .edit-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .edit-modal-body {
+        padding: 24px;
+        max-height: calc(90vh - 150px);
+        overflow-y: auto;
+      }
+
+      .edit-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .edit-form-group {
+        margin-bottom: 16px;
+      }
+
+      .edit-form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .edit-form-label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+
+      .edit-form-input,
+      .edit-form-textarea,
+      .edit-form-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: white;
+      }
+
+      .edit-form-input:focus,
+      .edit-form-textarea:focus,
+      .edit-form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .edit-form-textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .edit-checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .edit-checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .edit-checkbox-item input[type='checkbox'] {
+        width: 16px;
+        height: 16px;
+        accent-color: #3b82f6;
+      }
+
+      .edit-form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      /* 編輯地圖容器 */
+      .edit-map-container {
+        height: 300px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+
+      .edit-coordinate-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .edit-map-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+
+      .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      @media (max-width: 768px) {
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .card-header {
+          flex-direction: column;
+          gap: 12px;
+          align-items: flex-start;
+        }
+
+        .card-actions {
+          width: 100%;
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .timestamp-info {
+          text-align: left;
+          font-size: 0.7rem;
+        }
+
+        .btn {
+          flex-shrink: 0;
+        }
+
+        .edit-form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .edit-coordinate-inputs {
+          grid-template-columns: 1fr;
+        }
+
+        .edit-form-actions {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+
+        .edit-btn {
+          width: fit-content;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="main-content">
+        <!-- 頁面標題 -->
+        <div class="header">
+          <h1>住宿點管理</h1>
+          <div class="search-container">
+            <div style="position: relative">
+              <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+              <input
+                type="text"
+                id="searchInput"
+                class="search-input"
+                placeholder="搜索住宿點... (可搜索名稱、地址、聯絡方式等)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 住宿點列表 -->
+        <div id="accommodationList" class="accommodation-list">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>載入中...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      // API URL
+      const API_URL = 'https://guangfu250923.pttapp.cc';
+
+      // 全域變數存儲所有住宿點資料
+      let allAccommodations = [];
+
+      // 獲取住宿點列表資料
+      const getAccommodationList = async () => {
+        try {
+          const response = await fetch(`${API_URL}/accommodations`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error('Error fetching accommodation data:', error);
+          showToast('獲取住宿資料失敗', 'error');
+          return [];
+        }
+      };
+
+      // 更新住宿點資料
+      const updateAccommodation = async (id, data) => {
+        try {
+          const response = await fetch(`${API_URL}/accommodations/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+
+          if (response.ok) {
+            showToast('住宿點資料更新成功', 'success');
+            loadAccommodationList(); // 重新載入列表
+          } else {
+            throw new Error('更新失敗');
+          }
+        } catch (error) {
+          console.error('Error updating accommodation:', error);
+          showToast('更新住宿點資料失敗', 'error');
+        }
+      };
+
+      // 顯示 Toast 通知
+      function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      // 格式化時間戳
+      function formatTimestamp(timestamp) {
+        if (!timestamp) return '未設定';
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString('zh-TW');
+      }
+
+      // 格式化空房狀態
+      function formatVacancyStatus(status) {
+        const statusMap = {
+          available: { text: '有空房', class: 'vacancy-available' },
+          full: { text: '已滿房', class: 'vacancy-full' },
+          unknown: { text: '狀態不明', class: 'vacancy-unknown' },
+          need_confirm: { text: '需要確認', class: 'vacancy-need-confirm' },
+        };
+        const statusInfo = statusMap[status] || {
+          text: status || '未設定',
+          class: 'vacancy-unknown',
+        };
+        return `<span class="vacancy-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+      }
+
+      // 格式化營運狀態
+      function formatOperationStatus(status) {
+        const statusMap = {
+          active: { text: '正在營運', class: 'status-active' },
+          paused: { text: '暫停營運', class: 'status-paused' },
+          ended: { text: '已結束', class: 'status-ended' },
+        };
+        const statusInfo = statusMap[status] || {
+          text: status || '未設定',
+          class: 'status-unknown',
+        };
+        return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+      }
+
+      // 格式化座標
+      function formatCoordinates(coordinates) {
+        if (!coordinates || !coordinates.lat || !coordinates.lng) {
+          return '未設定';
+        }
+        return `<span class="coordinates-display">${coordinates.lat}, ${coordinates.lng}</span>`;
+      }
+
+      // 格式化設施列表
+      function formatFacilities(facilities) {
+        if (!facilities || !Array.isArray(facilities) || facilities.length === 0) {
+          return '無';
+        }
+        return `<div class="facilities-list">${facilities
+          .map((facility) => `<span class="facility-tag">${facility}</span>`)
+          .join('')}</div>`;
+      }
+
+      // 渲染住宿點卡片
+      function renderAccommodationCard(accommodation) {
+        // 隱藏的欄位
+        const hiddenFields = ['id'];
+        // 系統欄位，不可編輯（但時間戳會移到標題區）
+        const systemFields = ['created_at', 'updated_at'];
+
+        // 欄位顯示名稱映射
+        const fieldLabels = {
+          township: '所屬鄉鎮',
+          name: '住宿點名稱',
+          has_vacancy: '空房狀態',
+          available_period: '開放期間',
+          restrictions: '入住限制',
+          contact_info: '聯絡方式',
+          room_info: '房間資訊',
+          address: '地址',
+          coordinates: 'GPS座標',
+          pricing: '費用',
+          info_source: '資訊來源',
+          notes: '其他備註',
+          capacity: '容納人數',
+          status: '營運狀態',
+          registration_method: '報到方式',
+          facilities: '提供設施',
+          distance_to_disaster_area: '距離災區距離/車程',
+        };
+
+        // 生成資訊項目（排除隱藏和系統欄位）
+        const infoItems = Object.entries(accommodation)
+          .filter(([key]) => !hiddenFields.includes(key) && !systemFields.includes(key))
+          .map(([key, value]) => {
+            let displayValue = value;
+
+            // 特殊格式化
+            if (key === 'has_vacancy') {
+              displayValue = formatVacancyStatus(value);
+            } else if (key === 'status') {
+              displayValue = formatOperationStatus(value);
+            } else if (key === 'coordinates') {
+              displayValue = formatCoordinates(value);
+            } else if (key === 'facilities') {
+              displayValue = formatFacilities(value);
+            } else if (value === null || value === undefined || value === '') {
+              displayValue = '未設定';
+            } else if (Array.isArray(value) && value.length === 0) {
+              displayValue = '無';
+            }
+
+            const label = fieldLabels[key] || key;
+
+            return `
+            <div class="info-item">
+              <div class="info-label">${label}:</div>
+              <div class="info-value">${displayValue}</div>
+            </div>
+          `;
+          })
+          .join('');
+
+        // 準備時間戳資訊
+        const createdAt = formatTimestamp(accommodation.created_at);
+        const updatedAt = formatTimestamp(accommodation.updated_at);
+
+        return `
+          <div class="accommodation-card" data-id="${accommodation.id}" id="accommodation-${
+          accommodation.id
+        }">
+            <div class="card-header">
+              <h3 class="card-title">${accommodation.name || '未命名住宿點'}</h3>
+              <div class="card-actions">
+                <div class="timestamp-info">
+                  <div>建立時間: ${createdAt}</div>
+                  <div>更新時間: ${updatedAt}</div>
+                </div>
+                <button class="btn btn-primary btn-small edit-btn" data-id="${accommodation.id}">
+                  編輯
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="info-grid">
+                ${infoItems}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 渲染空狀態
+      function renderEmptyState() {
+        return `
+          <div class="empty-state">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h3M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            <p>暫無住宿點資料</p>
+          </div>
+        `;
+      }
+
+      // 載入住宿點列表
+      async function loadAccommodationList() {
+        const container = document.getElementById('accommodationList');
+
+        try {
+          const data = await getAccommodationList();
+          const accommodations = data.member || [];
+          allAccommodations = accommodations; // 儲存所有資料
+
+          if (accommodations.length === 0) {
+            container.innerHTML = renderEmptyState();
+            return;
+          }
+
+          displayAccommodations(accommodations);
+        } catch (error) {
+          console.error('載入住宿點失敗:', error);
+          showNotification('載入住宿點資料失敗', 'error');
+          container.innerHTML =
+            '<div style="text-align: center; color: #666; padding: 40px;">載入失敗，請重試</div>';
+        }
+      }
+
+      // 顯示住宿點列表
+      function displayAccommodations(accommodations) {
+        const container = document.getElementById('accommodationList');
+
+        // 按更新時間排序（最新的在前）
+        accommodations.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+
+        const html = accommodations.map(renderAccommodationCard).join('');
+        container.innerHTML = html;
+
+        // 綁定編輯按鈕事件
+        bindEditButtons();
+      }
+
+      // 搜索住宿點功能
+      function searchAccommodations() {
+        const searchInput = document.getElementById('searchInput');
+        const query = searchInput.value.toLowerCase().trim();
+
+        if (!query) {
+          displayAccommodations(allAccommodations);
+          return;
+        }
+
+        const filteredAccommodations = allAccommodations.filter((accommodation) => {
+          const dataJSONString = JSON.stringify(accommodation).toLowerCase();
+          return dataJSONString.includes(query);
+        });
+
+        displayAccommodations(filteredAccommodations);
+      }
+
+      // 綁定編輯按鈕事件
+      function bindEditButtons() {
+        document.querySelectorAll('.edit-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const accommodationId = e.target.dataset.id;
+            openEditModal(accommodationId);
+          });
+        });
+      }
+
+      // 開啟編輯模態框
+      function openEditModal(accommodationId) {
+        // 先獲取住宿點資料
+        const accommodationCard = document.getElementById(`accommodation-${accommodationId}`);
+        if (!accommodationCard) {
+          showToast('找不到住宿點資料', 'error');
+          return;
+        }
+
+        // 從現有資料中獲取住宿點資訊（這裡我們需要重新獲取完整資料）
+        getAccommodationById(accommodationId).then((accommodation) => {
+          if (!accommodation) {
+            showToast('獲取住宿點資料失敗', 'error');
+            return;
+          }
+
+          createEditModal(accommodation);
+        });
+      }
+
+      // 獲取單一住宿點資料
+      async function getAccommodationById(accommodationId) {
+        try {
+          // 由於API可能沒有單一資料接口，我們從列表中找
+          const data = await getAccommodationList();
+          const accommodations = data.member || [];
+          return accommodations.find((acc) => acc.id === accommodationId);
+        } catch (error) {
+          console.error('Error fetching accommodation by id:', error);
+          return null;
+        }
+      }
+
+      // 創建編輯模態框
+      function createEditModal(accommodation) {
+        const modal = document.createElement('div');
+        modal.className = 'edit-modal';
+        modal.innerHTML = `
+          <div class="edit-modal-content">
+            <div class="edit-modal-header">
+              <h3>編輯住宿點 - ${accommodation.name || '未命名住宿點'}</h3>
+              <button type="button" class="preview-close-btn" id="closeEditModal">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+              <form id="editAccommodationForm">
+                <div class="edit-form-grid">
+                  <!-- 住宿點名稱 -->
+                  <div class="edit-form-group">
+                    <label for="edit_name" class="edit-form-label">住宿點名稱</label>
+                    <input
+                      type="text"
+                      id="edit_name"
+                      name="name"
+                      class="edit-form-input"
+                      value="${accommodation.name || ''}"
+                      placeholder="請輸入住宿點名稱"
+                    />
+                  </div>
+
+                  <!-- 所屬鄉鎮 -->
+                  <div class="edit-form-group">
+                    <label for="edit_township" class="edit-form-label">所屬鄉鎮</label>
+                    <select id="edit_township" name="township" class="edit-form-select">
+                      <option value="">請選擇鄉鎮</option>
+                      <option value="花蓮市" ${
+                        accommodation.township === '花蓮市' ? 'selected' : ''
+                      }>花蓮市</option>
+                      <option value="鳳林鎮" ${
+                        accommodation.township === '鳳林鎮' ? 'selected' : ''
+                      }>鳳林鎮</option>
+                      <option value="玉里鎮" ${
+                        accommodation.township === '玉里鎮' ? 'selected' : ''
+                      }>玉里鎮</option>
+                      <option value="新城鄉" ${
+                        accommodation.township === '新城鄉' ? 'selected' : ''
+                      }>新城鄉</option>
+                      <option value="吉安鄉" ${
+                        accommodation.township === '吉安鄉' ? 'selected' : ''
+                      }>吉安鄉</option>
+                      <option value="壽豐鄉" ${
+                        accommodation.township === '壽豐鄉' ? 'selected' : ''
+                      }>壽豐鄉</option>
+                      <option value="光復鄉" ${
+                        accommodation.township === '光復鄉' ? 'selected' : ''
+                      }>光復鄉</option>
+                      <option value="豐濱鄉" ${
+                        accommodation.township === '豐濱鄉' ? 'selected' : ''
+                      }>豐濱鄉</option>
+                      <option value="瑞穗鄉" ${
+                        accommodation.township === '瑞穗鄉' ? 'selected' : ''
+                      }>瑞穗鄉</option>
+                      <option value="富里鄉" ${
+                        accommodation.township === '富里鄉' ? 'selected' : ''
+                      }>富里鄉</option>
+                      <option value="秀林鄉" ${
+                        accommodation.township === '秀林鄉' ? 'selected' : ''
+                      }>秀林鄉</option>
+                      <option value="萬榮鄉" ${
+                        accommodation.township === '萬榮鄉' ? 'selected' : ''
+                      }>萬榮鄉</option>
+                      <option value="卓溪鄉" ${
+                        accommodation.township === '卓溪鄉' ? 'selected' : ''
+                      }>卓溪鄉</option>
+                      <option value="其他" ${
+                        accommodation.township === '其他' ? 'selected' : ''
+                      }>其他</option>
+                    </select>
+                  </div>
+
+                  <!-- 空房狀態 -->
+                  <div class="edit-form-group">
+                    <label for="edit_has_vacancy" class="edit-form-label">空房狀態</label>
+                    <select id="edit_has_vacancy" name="has_vacancy" class="edit-form-select">
+                      <option value="">請選擇空房狀態</option>
+                      <option value="available" ${
+                        accommodation.has_vacancy === 'available' ? 'selected' : ''
+                      }>有空房</option>
+                      <option value="full" ${
+                        accommodation.has_vacancy === 'full' ? 'selected' : ''
+                      }>已滿房</option>
+                      <option value="unknown" ${
+                        accommodation.has_vacancy === 'unknown' ? 'selected' : ''
+                      }>狀態不明</option>
+                      <option value="need_confirm" ${
+                        accommodation.has_vacancy === 'need_confirm' ? 'selected' : ''
+                      }>需要確認</option>
+                    </select>
+                  </div>
+
+                  <!-- 開放期間 -->
+                  <div class="edit-form-group">
+                    <label for="edit_available_period" class="edit-form-label">開放期間</label>
+                    <input
+                      type="text"
+                      id="edit_available_period"
+                      name="available_period"
+                      class="edit-form-input"
+                      value="${accommodation.available_period || ''}"
+                      placeholder="例：9/27-10/3, 9/24起"
+                    />
+                  </div>
+
+                  <!-- 容納人數 -->
+                  <div class="edit-form-group">
+                    <label for="edit_capacity" class="edit-form-label">容納人數</label>
+                    <input
+                      type="number"
+                      id="edit_capacity"
+                      name="capacity"
+                      class="edit-form-input"
+                      value="${accommodation.capacity || ''}"
+                      min="1"
+                      placeholder="請輸入容納人數"
+                    />
+                  </div>
+
+                  <!-- 費用 -->
+                  <div class="edit-form-group">
+                    <label for="edit_pricing" class="edit-form-label">費用</label>
+                    <input
+                      type="text"
+                      id="edit_pricing"
+                      name="pricing"
+                      class="edit-form-input"
+                      value="${accommodation.pricing || ''}"
+                      placeholder="例：免費, 優惠價500元/晚, 待確認"
+                    />
+                  </div>
+                </div>
+
+                <!-- 地址 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_address" class="edit-form-label">地址</label>
+                  <input
+                    type="text"
+                    id="edit_address"
+                    name="address"
+                    class="edit-form-input"
+                    value="${accommodation.address || ''}"
+                    placeholder="請輸入詳細地址"
+                  />
+                </div>
+
+                <!-- GPS 座標 -->
+                <div class="edit-form-group full-width">
+                  <label class="edit-form-label">GPS 座標</label>
+                  <div class="edit-map-container" id="editMapContainer"></div>
+                  <div class="edit-coordinate-inputs">
+                    <div>
+                      <label for="edit_lat" class="edit-form-label">緯度</label>
+                      <input
+                        type="number"
+                        id="edit_lat"
+                        name="lat"
+                        class="edit-form-input"
+                        value="${accommodation.coordinates?.lat || ''}"
+                        step="0.000001"
+                        placeholder="23.xxxx"
+                      />
+                    </div>
+                    <div>
+                      <label for="edit_lng" class="edit-form-label">經度</label>
+                      <input
+                        type="number"
+                        id="edit_lng"
+                        name="lng"
+                        class="edit-form-input"
+                        value="${accommodation.coordinates?.lng || ''}"
+                        step="0.000001"
+                        placeholder="121.xxxx"
+                      />
+                    </div>
+                  </div>
+                  <div class="edit-map-actions">
+                    <button type="button" id="editGetCurrentLocationBtn" class="btn btn-primary btn-small">
+                      獲取當前位置
+                    </button>
+                    <button type="button" id="editCenterMapBtn" class="btn btn-secondary btn-small">
+                      回到光復鄉
+                    </button>
+                  </div>
+                  <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                    點擊地圖上的位置來設定座標，或手動輸入座標值
+                  </p>
+                </div>
+
+                <!-- 聯絡方式 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_contact_info" class="edit-form-label">聯絡方式</label>
+                  <input
+                    type="text"
+                    id="edit_contact_info"
+                    name="contact_info"
+                    class="edit-form-input"
+                    value="${accommodation.contact_info || ''}"
+                    placeholder="電話、Line ID、FB私訊等聯絡方式"
+                  />
+                </div>
+
+                <!-- 房間資訊 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_room_info" class="edit-form-label">房間資訊</label>
+                  <input
+                    type="text"
+                    id="edit_room_info"
+                    name="room_info"
+                    class="edit-form-input"
+                    value="${accommodation.room_info || ''}"
+                    placeholder="例：雙人房 2 間、四人房 1 間"
+                  />
+                </div>
+
+                <!-- 入住限制 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_restrictions" class="edit-form-label">入住限制</label>
+                  <textarea
+                    id="edit_restrictions"
+                    name="restrictions"
+                    class="edit-form-textarea"
+                    placeholder="例：限救災志工, 每人限住兩晚, 需出示志工證"
+                  >${accommodation.restrictions || ''}</textarea>
+                </div>
+
+                <!-- 提供設施 -->
+                <div class="edit-form-group full-width">
+                  <label class="edit-form-label">提供設施</label>
+                  <div class="edit-checkbox-group">
+                    <div class="edit-checkbox-item">
+                      <input type="checkbox" id="edit_facility_wifi" name="facilities" value="Wi-Fi" 
+                        ${accommodation.facilities?.includes('Wi-Fi') ? 'checked' : ''} />
+                      <label for="edit_facility_wifi">Wi-Fi</label>
+                    </div>
+                    <div class="edit-checkbox-item">
+                      <input type="checkbox" id="edit_facility_parking" name="facilities" value="停車位" 
+                        ${accommodation.facilities?.includes('停車位') ? 'checked' : ''} />
+                      <label for="edit_facility_parking">停車位</label>
+                    </div>
+                    <div class="edit-checkbox-item">
+                      <input type="checkbox" id="edit_facility_breakfast" name="facilities" value="早餐" 
+                        ${accommodation.facilities?.includes('早餐') ? 'checked' : ''} />
+                      <label for="edit_facility_breakfast">早餐</label>
+                    </div>
+                    <div class="edit-checkbox-item">
+                      <input type="checkbox" id="edit_facility_laundry" name="facilities" value="洗衣" 
+                        ${accommodation.facilities?.includes('洗衣') ? 'checked' : ''} />
+                      <label for="edit_facility_laundry">洗衣</label>
+                    </div>
+                    <div class="edit-checkbox-item">
+                      <input type="checkbox" id="edit_facility_kitchen" name="facilities" value="廚房" 
+                        ${accommodation.facilities?.includes('廚房') ? 'checked' : ''} />
+                      <label for="edit_facility_kitchen">廚房</label>
+                    </div>
+                    <div class="edit-checkbox-item">
+                      <input type="checkbox" id="edit_facility_ac" name="facilities" value="冷氣" 
+                        ${accommodation.facilities?.includes('冷氣') ? 'checked' : ''} />
+                      <label for="edit_facility_ac">冷氣</label>
+                    </div>
+                    <div class="edit-checkbox-item">
+                      <input type="checkbox" id="edit_facility_bath" name="facilities" value="浴室" 
+                        ${accommodation.facilities?.includes('浴室') ? 'checked' : ''} />
+                      <label for="edit_facility_bath">浴室</label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 距離災區距離/車程 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_distance_to_disaster_area" class="edit-form-label">距離災區距離/車程</label>
+                  <input
+                    type="text"
+                    id="edit_distance_to_disaster_area"
+                    name="distance_to_disaster_area"
+                    class="edit-form-input"
+                    value="${accommodation.distance_to_disaster_area || ''}"
+                    placeholder="例：30-50分鐘車程, 15公里"
+                  />
+                </div>
+
+                <!-- 資訊來源 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_info_source" class="edit-form-label">資訊來源</label>
+                  <input
+                    type="text"
+                    id="edit_info_source"
+                    name="info_source"
+                    class="edit-form-input"
+                    value="${accommodation.info_source || ''}"
+                    placeholder="例：花蓮國際民宿協會, threads, 臉書社團FB"
+                  />
+                </div>
+
+                <!-- 報到方式 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_registration_method" class="edit-form-label">報到方式</label>
+                  <input
+                    type="text"
+                    id="edit_registration_method"
+                    name="registration_method"
+                    class="edit-form-input"
+                    value="${accommodation.registration_method || ''}"
+                    placeholder="例：現場登記, 線上預約, 電話預約"
+                  />
+                </div>
+
+                <!-- 營運狀態 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_status" class="edit-form-label">營運狀態</label>
+                  <select id="edit_status" name="status" class="edit-form-select">
+                    <option value="">請選擇營運狀態</option>
+                    <option value="active" ${
+                      accommodation.status === 'active' ? 'selected' : ''
+                    }>正在營運</option>
+                    <option value="paused" ${
+                      accommodation.status === 'paused' ? 'selected' : ''
+                    }>暫停營運</option>
+                    <option value="ended" ${
+                      accommodation.status === 'ended' ? 'selected' : ''
+                    }>已結束</option>
+                  </select>
+                </div>
+
+                <!-- 其他備註 -->
+                <div class="edit-form-group full-width">
+                  <label for="edit_notes" class="edit-form-label">其他備註</label>
+                  <textarea
+                    id="edit_notes"
+                    name="notes"
+                    class="edit-form-textarea"
+                    placeholder="其他需要注意的事項或特殊說明"
+                  >${accommodation.notes || ''}</textarea>
+                </div>
+
+                <!-- 表單操作按鈕 -->
+                <div class="edit-form-actions">
+                  <button type="button" id="cancelEditBtn" class="btn btn-secondary">取消</button>
+                  <button type="submit" class="btn btn-success">更新住宿點</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // 綁定事件
+        bindEditModalEvents(modal, accommodation.id);
+      }
+
+      // 綁定編輯模態框事件
+      function bindEditModalEvents(modal, accommodationId) {
+        // 關閉模態框
+        modal.querySelector('#closeEditModal').addEventListener('click', () => {
+          cleanupEditMap();
+          document.body.removeChild(modal);
+        });
+
+        modal.querySelector('#cancelEditBtn').addEventListener('click', () => {
+          cleanupEditMap();
+          document.body.removeChild(modal);
+        });
+
+        // 點擊背景關閉
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            cleanupEditMap();
+            document.body.removeChild(modal);
+          }
+        });
+
+        // 表單提交
+        modal.querySelector('#editAccommodationForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          await handleEditFormSubmit(modal, accommodationId);
+        });
+
+        // 初始化編輯地圖
+        setTimeout(() => initEditMap(modal), 100);
+      }
+
+      // 清理編輯地圖資源
+      function cleanupEditMap() {
+        if (editMap) {
+          editMap.remove();
+          editMap = null;
+          editMarker = null;
+        }
+      }
+
+      // 編輯地圖變數
+      let editMap;
+      let editMarker;
+
+      // 初始化編輯地圖
+      function initEditMap(modal) {
+        try {
+          const mapContainer = modal.querySelector('#editMapContainer');
+          if (!mapContainer) return;
+
+          // 獲取現有座標或使用預設座標
+          const latInput = modal.querySelector('#edit_lat');
+          const lngInput = modal.querySelector('#edit_lng');
+
+          let centerLat = 23.6617; // 光復鄉預設座標
+          let centerLng = 121.4253;
+          let zoom = 12;
+
+          // 如果有現有座標，使用它作為中心點
+          if (latInput.value && lngInput.value) {
+            centerLat = parseFloat(latInput.value);
+            centerLng = parseFloat(lngInput.value);
+            zoom = 15;
+          }
+
+          // 創建地圖
+          editMap = L.map(mapContainer).setView([centerLat, centerLng], zoom);
+
+          // 添加地圖圖層
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+          }).addTo(editMap);
+
+          // 如果有現有座標，添加標記
+          if (latInput.value && lngInput.value) {
+            updateEditMapMarker(centerLat, centerLng);
+          }
+
+          // 地圖點擊事件
+          editMap.on('click', function (e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            updateEditMapMarker(lat, lng);
+            latInput.value = lat.toFixed(6);
+            lngInput.value = lng.toFixed(6);
+          });
+
+          // 座標輸入框變化事件
+          latInput.addEventListener('input', onEditCoordinateChange);
+          lngInput.addEventListener('input', onEditCoordinateChange);
+
+          // 獲取當前位置按鈕
+          modal
+            .querySelector('#editGetCurrentLocationBtn')
+            .addEventListener('click', getEditCurrentLocation);
+
+          // 回到光復鄉按鈕
+          modal
+            .querySelector('#editCenterMapBtn')
+            .addEventListener('click', centerEditMapToGuangfu);
+
+          console.log('編輯地圖初始化成功');
+        } catch (error) {
+          console.error('編輯地圖初始化失敗:', error);
+        }
+      }
+
+      // 更新編輯地圖標記
+      function updateEditMapMarker(lat, lng) {
+        if (editMarker) {
+          editMap.removeLayer(editMarker);
+        }
+
+        editMarker = L.marker([lat, lng]).addTo(editMap);
+        editMap.setView([lat, lng], 15);
+      }
+
+      // 編輯座標輸入變化時更新地圖
+      function onEditCoordinateChange() {
+        if (!editMap) return;
+
+        const latInput = document.querySelector('#edit_lat');
+        const lngInput = document.querySelector('#edit_lng');
+
+        const lat = parseFloat(latInput.value);
+        const lng = parseFloat(lngInput.value);
+
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            updateEditMapMarker(lat, lng);
+          }
+        }
+      }
+
+      // 獲取編輯當前位置
+      function getEditCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+
+              document.querySelector('#edit_lat').value = lat.toFixed(6);
+              document.querySelector('#edit_lng').value = lng.toFixed(6);
+              updateEditMapMarker(lat, lng);
+
+              showToast('成功獲取當前位置', 'success');
+            },
+            function (error) {
+              console.error('獲取位置失敗:', error);
+              showToast('無法獲取當前位置，請手動設定', 'error');
+            },
+          );
+        } else {
+          showToast('您的瀏覽器不支援定位功能', 'error');
+        }
+      }
+
+      // 編輯地圖回到光復鄉
+      function centerEditMapToGuangfu() {
+        if (!editMap) return;
+
+        const centerLat = 23.6617;
+        const centerLng = 121.4253;
+
+        editMap.setView([centerLat, centerLng], 12);
+        showToast('地圖已回到光復鄉中心', 'success');
+      }
+
+      // 處理編輯表單提交
+      async function handleEditFormSubmit(modal, accommodationId) {
+        try {
+          const formData = getEditFormData(modal);
+          await updateAccommodation(accommodationId, formData);
+          document.body.removeChild(modal);
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      // 獲取編輯表單資料
+      function getEditFormData(modal) {
+        const form = modal.querySelector('#editAccommodationForm');
+        const formData = new FormData(form);
+
+        // 處理設施多選框
+        const facilities = [];
+        modal.querySelectorAll('input[name="facilities"]:checked').forEach((checkbox) => {
+          facilities.push(checkbox.value);
+        });
+
+        const lat = parseFloat(formData.get('lat'));
+        const lng = parseFloat(formData.get('lng'));
+
+        const data = {
+          township: formData.get('township') || '',
+          name: formData.get('name') || '',
+          has_vacancy: formData.get('has_vacancy') || '',
+          available_period: formData.get('available_period') || '',
+          restrictions: formData.get('restrictions') || '',
+          contact_info: formData.get('contact_info') || '',
+          room_info: formData.get('room_info') || '',
+          address: formData.get('address') || '',
+          pricing: formData.get('pricing') || '',
+          info_source: formData.get('info_source') || '',
+          notes: formData.get('notes') || '',
+          capacity: formData.get('capacity') ? parseInt(formData.get('capacity')) : null,
+          status: formData.get('status') || '',
+          registration_method: formData.get('registration_method') || '',
+          facilities: facilities,
+          distance_to_disaster_area: formData.get('distance_to_disaster_area') || '',
+        };
+
+        // 只有在座標有效時才添加
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+          data.coordinates = { lat, lng };
+        }
+
+        return data;
+      }
+
+      // 初始化頁面
+      document.addEventListener('DOMContentLoaded', function () {
+        loadAccommodationList();
+
+        // 綁定搜索事件
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          searchInput.addEventListener('input', searchAccommodations);
+          searchInput.addEventListener('keyup', searchAccommodations);
+        }
+
+        // 每30秒自動刷新一次
+        setInterval(loadAccommodationList, 30000);
+      });
+    </script>
+  </body>
+</html>

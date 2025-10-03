@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Permissions-Policy" content="geolocation=*" />
-    <title>新增廁所 - 救災地點總覽</title>
+    <title>新增洗澡點 - 救災地點總覽</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link
@@ -325,102 +325,85 @@
     <div class="container">
       <div class="form-container">
         <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-800 mb-2">新增廁所</h1>
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">新增洗澡點</h1>
           <p class="text-gray-600">
-            請填寫廁所的詳細資訊，標註 <span class="text-red-500">*</span> 的欄位為必填項目
+            請填寫洗澡點的詳細資訊，標註 <span class="text-red-500">*</span> 的欄位為必填項目
           </p>
         </div>
 
-        <form id="restroomForm" class="space-y-6">
+        <form id="showerStationForm" class="space-y-6">
           <div class="form-grid">
-            <!-- 廁所名稱 -->
+            <!-- 洗澡點名稱 -->
             <div class="form-group">
-              <label for="name" class="form-label required">地點名稱</label>
+              <label for="name" class="form-label required">洗澡點名稱</label>
               <input
                 type="text"
                 id="name"
                 name="name"
                 class="form-input"
-                placeholder="請輸入廁所名稱"
+                placeholder="請輸入洗澡點名稱"
                 required
               />
             </div>
 
-            <!-- 開放時間 -->
+            <!-- 設備類型 -->
             <div class="form-group">
-              <label for="opening_hours" class="form-label required">開放時間</label>
+              <label for="facility_type" class="form-label required">設備類型</label>
+              <select id="facility_type" name="facility_type" class="form-select" required>
+                <option disabled value="">請選擇設備類型</option>
+                <option value="mobile_shower">行動式洗澡車</option>
+                <option value="coin_operated">投幣式洗澡間</option>
+                <option value="regular_bathroom">一般衛浴間</option>
+              </select>
+            </div>
+
+            <!-- 聯絡電話 -->
+            <div class="form-group">
+              <label for="phone" class="form-label">聯絡電話</label>
               <input
                 type="text"
-                id="opening_hours"
-                name="opening_hours"
+                id="phone"
+                name="phone"
                 class="form-input"
-                placeholder="例：24小時, 06:00-22:00"
-                required
+                placeholder="請輸入聯絡電話"
               />
             </div>
 
-            <!-- 是否免費 -->
+            <!-- 開放時段 -->
             <div class="form-group">
-              <label for="is_free" class="form-label required">是否免費</label>
-              <select id="is_free" name="is_free" class="form-select" required>
-                <option disabled value="">請選擇</option>
-                <option value="true">免費</option>
-                <option value="false">收費</option>
-              </select>
+              <label for="time_slots" class="form-label">開放時段</label>
+              <input
+                type="text"
+                id="time_slots"
+                name="time_slots"
+                class="form-input"
+                placeholder="例：上午10:00-11:30, 下午15:30-17:30"
+              />
             </div>
 
-            <!-- 營運狀態 -->
+            <!-- 開放期間 -->
             <div class="form-group">
-              <label for="status" class="form-label required">營運狀態</label>
-              <select id="status" name="status" class="form-select" required>
-                <option disabled value="">請選擇營運狀態</option>
-                <option value="open">開放中</option>
-                <option value="closed">關閉</option>
-                <option value="maintenance">維修中</option>
-              </select>
+              <label for="available_period" class="form-label">開放期間</label>
+              <input
+                type="text"
+                id="available_period"
+                name="available_period"
+                class="form-input"
+                placeholder="例：9/26-9/28, 即日起至10/3"
+              />
             </div>
 
-            <!-- 廁所類型 -->
+            <!-- 同時可容納人數 -->
             <div class="form-group">
-              <label for="facility_type" class="form-label">廁所類型</label>
-              <select id="facility_type" name="facility_type" class="form-select">
-                <option disabled value="">請選擇廁所類型</option>
-                <option value="public">公共廁所</option>
-                <option value="portable">流動廁所</option>
-                <option value="indoor">室內廁所</option>
-                <option value="outdoor">戶外廁所</option>
-              </select>
-            </div>
-
-            <!-- 清潔狀況 -->
-            <div class="form-group">
-              <label for="cleanliness" class="form-label">清潔狀況</label>
-              <select id="cleanliness" name="cleanliness" class="form-select">
-                <option disabled value="">請選擇清潔狀況</option>
-                <option value="clean">乾淨</option>
-                <option value="acceptable">尚可</option>
-                <option value="needs_cleaning">需要清潔</option>
-              </select>
-            </div>
-
-            <!-- 是否有供水 -->
-            <div class="form-group">
-              <label for="has_water" class="form-label required">是否有供水</label>
-              <select id="has_water" name="has_water" class="form-select" required>
-                <option disabled value="">請選擇</option>
-                <option value="true">有</option>
-                <option value="false">無</option>
-              </select>
-            </div>
-
-            <!-- 是否有照明 -->
-            <div class="form-group">
-              <label for="has_lighting" class="form-label required">是否有照明</label>
-              <select id="has_lighting" name="has_lighting" class="form-select" required>
-                <option disabled value="">請選擇</option>
-                <option value="true">有</option>
-                <option value="false">無</option>
-              </select>
+              <label for="capacity" class="form-label">同時可容納人數</label>
+              <input
+                type="number"
+                id="capacity"
+                name="capacity"
+                class="form-input"
+                min="0"
+                placeholder="請輸入同時可容納人數"
+              />
             </div>
           </div>
 
@@ -432,7 +415,7 @@
               id="address"
               name="address"
               class="form-input"
-              placeholder="請輸入詳細地址"
+              placeholder="請輸入地址"
             />
           </div>
 
@@ -472,85 +455,149 @@
             <p class="text-sm text-gray-500 mt-2">點擊地圖上的位置來設定座標，或手動輸入座標值</p>
           </div>
 
-          <!-- 無障礙設施 -->
+          <!-- 營運狀態 -->
           <div class="form-group full-width">
-            <label for="accessibility" class="form-label required">無障礙設施</label>
-            <select id="accessibility" name="accessibility" class="form-select" required>
-              <option disabled value="">是否有無障礙設施</option>
-              <option value="true">有</option>
-              <option value="false">無</option>
+            <label for="status" class="form-label required">營運狀態</label>
+            <select id="status" name="status" class="form-select" required>
+              <option disabled value="">請選擇營運狀態</option>
+              <option value="active">正常營運</option>
+              <option value="temporarily_closed">暫時關閉</option>
+              <option value="ended">已結束</option>
             </select>
           </div>
 
-          <!-- 提供設施 -->
+          <!-- 性別使用時段 -->
           <div class="form-group full-width">
-            <label class="form-label">提供設施</label>
-            <div class="checkbox-group">
-              <div class="checkbox-item">
+            <label class="form-label">性別使用時段</label>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="male_hours" class="form-label">男性時段</label>
                 <input
-                  type="checkbox"
-                  id="facility_toilet_paper"
-                  name="facilities"
-                  value="衛生紙"
+                  type="text"
+                  id="male_hours"
+                  name="male_hours"
+                  class="form-input"
+                  placeholder="例：10:00-10:30"
                 />
-                <label for="facility_toilet_paper">衛生紙</label>
               </div>
-              <div class="checkbox-item">
-                <input type="checkbox" id="facility_hand_soap" name="facilities" value="洗手乳" />
-                <label for="facility_hand_soap">洗手乳</label>
-              </div>
-              <div class="checkbox-item">
-                <input type="checkbox" id="facility_water" name="facilities" value="沖水設備" />
-                <label for="facility_water">沖水設備</label>
-              </div>
-              <div class="checkbox-item">
-                <input type="checkbox" id="facility_lighting" name="facilities" value="照明設備" />
-                <label for="facility_lighting">照明設備</label>
-              </div>
-              <div class="checkbox-item">
+              <div class="form-group">
+                <label for="female_hours" class="form-label">女性時段</label>
                 <input
-                  type="checkbox"
-                  id="facility_ventilation"
-                  name="facilities"
-                  value="通風設備"
+                  type="text"
+                  id="female_hours"
+                  name="female_hours"
+                  class="form-input"
+                  placeholder="例：10:30-11:30"
                 />
-                <label for="facility_ventilation">通風設備</label>
               </div>
             </div>
           </div>
 
-          <!-- 距離災區距離 -->
+          <!-- 是否免費 -->
           <div class="form-group full-width">
-            <label for="distance_to_disaster_area" class="form-label">距離災區距離</label>
+            <label for="is_free" class="form-label required">是否免費</label>
+            <select id="is_free" name="is_free" class="form-select" required>
+              <option disabled value="">請選擇</option>
+              <option value="true">免費</option>
+              <option value="false">收費</option>
+            </select>
+          </div>
+
+          <!-- 費用說明 -->
+          <div class="form-group full-width">
+            <label for="pricing" class="form-label">費用說明</label>
             <input
               type="text"
-              id="distance_to_disaster_area"
-              name="distance_to_disaster_area"
+              id="pricing"
+              name="pricing"
               class="form-input"
-              placeholder="例：在災區內, 3分鐘步行"
+              placeholder="例：投幣式，每次10元"
             />
           </div>
 
-          <!-- 資訊來源 -->
+          <!-- 設施設備 -->
           <div class="form-group full-width">
-            <label for="info_source" class="form-label">資訊來源</label>
+            <label class="form-label">設施設備</label>
+            <div class="checkbox-group">
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_hot_water" name="facilities" value="熱水器" />
+                <label for="facility_hot_water">熱水器</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="facility_hair_dryer" name="facilities" value="吹風機" />
+                <label for="facility_hair_dryer">吹風機</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="facility_wash_products"
+                  name="facilities"
+                  value="洗沐用品"
+                />
+                <label for="facility_wash_products">洗沐用品</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 距離光復車程 -->
+          <div class="form-group full-width">
+            <label for="distance_to_guangfu" class="form-label">距離光復車程</label>
             <input
               type="text"
+              id="distance_to_guangfu"
+              name="distance_to_guangfu"
+              class="form-input"
+              placeholder="例：20分鐘, 40分鐘"
+            />
+          </div>
+
+          <!-- 是否需預約 -->
+          <div class="form-group full-width">
+            <label for="requires_appointment" class="form-label required">是否需預約</label>
+            <select
+              id="requires_appointment"
+              name="requires_appointment"
+              class="form-select"
+              required
+            >
+              <option disabled value="">請選擇</option>
+              <option value="true">需要預約</option>
+              <option value="false">無需預約</option>
+            </select>
+          </div>
+
+          <!-- 預約方式 -->
+          <div class="form-group full-width">
+            <label for="contact_method" class="form-label">預約方式</label>
+            <input
+              type="text"
+              id="contact_method"
+              name="contact_method"
+              class="form-input"
+              placeholder="例：LINE: @wowhostel, 電話預約"
+            />
+          </div>
+
+          <!-- 資料來源 -->
+          <div class="form-group full-width">
+            <label for="info_source" class="form-label">資料來源</label>
+            <input
+              type="url"
               id="info_source"
               name="info_source"
               class="form-input"
-              placeholder="例：現場確認, 志工回報"
+              placeholder="請輸入資料來源連結"
             />
           </div>
 
           <!-- 其他備註 -->
           <div class="form-group full-width">
-            <label for="notes" class="form-label">備註</label>
+            <label for="notes" class="form-label">備註說明</label>
             <textarea
               id="notes"
               name="notes"
               class="form-textarea"
-              placeholder="其他需要注意的事項或特殊說明"
+              placeholder="例：多座行動沐浴車, 值勤皮膚所需"
             ></textarea>
           </div>
 
@@ -558,7 +605,7 @@
           <div class="form-actions">
             <button type="button" id="resetBtn" class="btn btn-secondary">重置表單</button>
             <button type="button" id="previewBtn" class="btn btn-primary">預覽資料</button>
-            <button type="submit" class="btn btn-success">提交廁所</button>
+            <button type="submit" class="btn btn-success">提交洗澡點</button>
           </div>
         </form>
       </div>
@@ -655,19 +702,26 @@
 
       // 生成唯一 ID
       // function generateId() {
-      //   return 'restroom-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      //   return 'medical-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
       // }
 
       // 獲取表單資料
       function getFormData() {
-        const form = document.getElementById('restroomForm');
+        const form = document.getElementById('showerStationForm');
         const formData = new FormData(form);
 
-        // 處理設施多選框
+        // 處理設施設備多選框
         const facilities = [];
         document.querySelectorAll('input[name="facilities"]:checked').forEach((checkbox) => {
           facilities.push(checkbox.value);
         });
+
+        // 處理性別使用時段
+        const genderSchedule = {};
+        const maleHours = formData.get('male_hours');
+        const femaleHours = formData.get('female_hours');
+        if (maleHours) genderSchedule.male = [maleHours];
+        if (femaleHours) genderSchedule.female = [femaleHours];
 
         const lat = parseFloat(formData.get('lat'));
         const lng = parseFloat(formData.get('lng'));
@@ -677,56 +731,48 @@
         }
 
         if (!formData.get('name')) {
-          throw new Error('請填寫地點名稱');
+          throw new Error('請填寫洗澡點名稱');
         }
 
-        if (!formData.get('address')) {
-          throw new Error('請填寫地址');
-        }
-
-        if (!formData.get('opening_hours')) {
-          throw new Error('請填寫開放時間');
-        }
-
-        if (!formData.get('is_free')) {
-          throw new Error('請選擇是否免費');
+        if (!formData.get('facility_type')) {
+          throw new Error('請選擇設備類型');
         }
 
         if (!formData.get('status')) {
           throw new Error('請選擇營運狀態');
         }
 
-        if (!formData.get('accessibility')) {
-          throw new Error('請選擇是否有無障礙設施');
+        if (!formData.get('is_free')) {
+          throw new Error('請選擇是否免費');
         }
 
-        if (!formData.get('has_water')) {
-          throw new Error('請選擇是否有供水');
-        }
-
-        if (!formData.get('has_lighting')) {
-          throw new Error('請選擇是否有照明');
+        if (!formData.get('requires_appointment')) {
+          throw new Error('請選擇是否需預約');
         }
 
         const data = {
+          id: 'shower-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
           name: formData.get('name'),
-          address: formData.get('address'),
+          address: formData.get('address') || '',
           coordinates: {
             lat: lat,
             lng: lng,
           },
-          opening_hours: formData.get('opening_hours'),
+          phone: formData.get('phone') || '',
+          facility_type: formData.get('facility_type'),
+          time_slots: formData.get('time_slots') || '',
+          gender_schedule: Object.keys(genderSchedule).length > 0 ? genderSchedule : null,
+          available_period: formData.get('available_period') || '',
+          capacity: formData.get('capacity') ? parseInt(formData.get('capacity')) : null,
           is_free: formData.get('is_free') === 'true',
-          status: formData.get('status'),
-          facility_type: formData.get('facility_type') || '',
-          cleanliness: formData.get('cleanliness') || '',
-          facilities: facilities,
-          accessibility: formData.get('accessibility') === 'true',
-          has_water: formData.get('has_water') === 'true',
-          has_lighting: formData.get('has_lighting') === 'true',
-          distance_to_disaster_area: formData.get('distance_to_disaster_area') || '',
+          pricing: formData.get('pricing') || '',
           notes: formData.get('notes') || '',
           info_source: formData.get('info_source') || '',
+          status: formData.get('status'),
+          facilities: facilities,
+          distance_to_guangfu: formData.get('distance_to_guangfu') || '',
+          requires_appointment: formData.get('requires_appointment') === 'true',
+          contact_method: formData.get('contact_method') || '',
         };
 
         return data;
@@ -743,45 +789,55 @@
           modal.innerHTML = `
             <div class="preview-modal-content">
               <div class="preview-modal-header">
-                <h3>預覽廁所資料</h3>
+                <h3>預覽洗澡點資料</h3>
                 <button type="button" class="preview-close-btn">&times;</button>
               </div>
               <div class="preview-modal-body">
-                <div class="preview-item"><strong>地點名稱:</strong> ${data.name}</div>
-                <div class="preview-item"><strong>地址:</strong> ${data.address}</div>
+                <div class="preview-item"><strong>洗澡點名稱:</strong> ${data.name}</div>
+                <div class="preview-item"><strong>設備類型:</strong> ${data.facility_type}</div>
+                <div class="preview-item"><strong>地址:</strong> ${data.address || '未填寫'}</div>
                 <div class="preview-item"><strong>GPS座標:</strong> ${data.coordinates.lat}, ${
             data.coordinates.lng
           }</div>
-                <div class="preview-item"><strong>開放時間:</strong> ${data.opening_hours}</div>
+                <div class="preview-item"><strong>聯絡電話:</strong> ${data.phone || '未填寫'}</div>
+                <div class="preview-item"><strong>開放時段:</strong> ${
+                  data.time_slots || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>男性時段:</strong> ${
+                  data.gender_schedule?.male ? data.gender_schedule.male.join(', ') : '未填寫'
+                }</div>
+                <div class="preview-item"><strong>女性時段:</strong> ${
+                  data.gender_schedule?.female ? data.gender_schedule.female.join(', ') : '未填寫'
+                }</div>
+                <div class="preview-item"><strong>開放期間:</strong> ${
+                  data.available_period || '未填寫'
+                }</div>
+                <div class="preview-item"><strong>同時可容納人數:</strong> ${
+                  data.capacity !== null ? data.capacity + '人' : '未填寫'
+                }</div>
                 <div class="preview-item"><strong>是否免費:</strong> ${
                   data.is_free ? '免費' : '收費'
                 }</div>
+                <div class="preview-item"><strong>費用說明:</strong> ${
+                  data.pricing || '未填寫'
+                }</div>
                 <div class="preview-item"><strong>營運狀態:</strong> ${data.status}</div>
-                <div class="preview-item"><strong>廁所類型:</strong> ${
-                  data.facility_type || '未填寫'
-                }</div>
-                <div class="preview-item"><strong>清潔狀況:</strong> ${
-                  data.cleanliness || '未填寫'
-                }</div>
-                <div class="preview-item"><strong>提供設施:</strong> ${
+                <div class="preview-item"><strong>設施設備:</strong> ${
                   data.facilities.length > 0 ? data.facilities.join(', ') : '未選擇'
                 }</div>
-                <div class="preview-item"><strong>無障礙設施:</strong> ${
-                  data.accessibility ? '有' : '無'
+                <div class="preview-item"><strong>距離光復車程:</strong> ${
+                  data.distance_to_guangfu || '未填寫'
                 }</div>
-                <div class="preview-item"><strong>是否有供水:</strong> ${
-                  data.has_water ? '有' : '無'
+                <div class="preview-item"><strong>是否需預約:</strong> ${
+                  data.requires_appointment ? '需要預約' : '無需預約'
                 }</div>
-                <div class="preview-item"><strong>是否有照明:</strong> ${
-                  data.has_lighting ? '有' : '無'
+                <div class="preview-item"><strong>預約方式:</strong> ${
+                  data.contact_method || '未填寫'
                 }</div>
-                <div class="preview-item"><strong>距離災區:</strong> ${
-                  data.distance_to_disaster_area || '未填寫'
-                }</div>
-                <div class="preview-item"><strong>資訊來源:</strong> ${
+                <div class="preview-item"><strong>資料來源:</strong> ${
                   data.info_source || '未填寫'
                 }</div>
-                <div class="preview-item"><strong>備註:</strong> ${data.notes || '未填寫'}</div>
+                <div class="preview-item"><strong>備註說明:</strong> ${data.notes || '未填寫'}</div>
               </div>
             </div>
           `;
@@ -832,7 +888,7 @@
         });
 
         confirmModal.querySelector('#confirmResetBtn').addEventListener('click', () => {
-          document.getElementById('restroomForm').reset();
+          document.getElementById('showerStationForm').reset();
           if (marker) {
             map.removeLayer(marker);
             marker = null;
@@ -856,9 +912,9 @@
         try {
           const data = getFormData();
 
-          console.log('提交廁所資料:', data);
+          console.log('提交洗澡點資料:', data);
 
-          const response = await fetch(`${API_URL}/restrooms`, {
+          const response = await fetch(`${API_URL}/shower_stations`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -867,7 +923,7 @@
           });
 
           if (response.ok) {
-            showToast('廁所新增成功！', 'success');
+            showToast('洗澡點新增成功！', 'success');
 
             // 創建成功確認模態框
             const successModal = document.createElement('div');
@@ -878,9 +934,9 @@
                   <h3>✅ 新增成功</h3>
                 </div>
                 <div class="preview-modal-body">
-                  <p style="margin-bottom: 20px; color: #10b981; font-weight: 600;">廁所已成功新增到系統中！</p>
+                  <p style="margin-bottom: 20px; color: #10b981; font-weight: 600;">洗澡點已成功新增到系統中！</p>
                   <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-primary" id="addAnotherBtn">新增另一個廁所</button>
+                    <button type="button" class="btn btn-primary" id="addAnotherBtn">新增另一個洗澡點</button>
                     <button type="button" class="btn btn-success" id="backToMainBtn">返回主頁面</button>
                   </div>
                 </div>
@@ -926,7 +982,7 @@
         setTimeout(initMap, 100);
 
         // 表單事件
-        document.getElementById('restroomForm').addEventListener('submit', submitForm);
+        document.getElementById('showerStationForm').addEventListener('submit', submitForm);
         document.getElementById('resetBtn').addEventListener('click', resetForm);
         document.getElementById('previewBtn').addEventListener('click', previewData);
         document
