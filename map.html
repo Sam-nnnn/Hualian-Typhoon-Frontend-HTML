@@ -2048,7 +2048,7 @@
                     station.detailed_address || '未提供'
                   }</div> 
                   ${
-                    !!station.services.join('')
+                    Array.isArray(station?.services) && station?.services.length > 0
                       ? `<div><span class="font-semibold">服務項目:</span> ${station.services.join(
                           ', \r\n',
                         )}</div>`
