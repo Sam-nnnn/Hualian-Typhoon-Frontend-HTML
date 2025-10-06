@@ -3333,36 +3333,64 @@
             if (disasterPolygon) map.addLayer(disasterPolygon);
             break;
           case 'accommodation':
+            gtag('event', 'click_layer_button', {
+                layer_type: 'accommodation',
+                button_id: 'showAccommodationBtn'
+            });
             clearAllLayers();
             document.getElementById('showAccommodationBtn').classList.add('active');
             accommodationMarkers.forEach((marker) => map.addLayer(marker));
             break;
           case 'shuttle':
+            gtag('event', 'click_layer_button', {
+                layer_type: 'shuttle',
+                button_id: 'showShuttleBtn'
+            });
             clearAllLayers();
             document.getElementById('showShuttleBtn').classList.add('active');
             shuttlePolylines.forEach((p) => map.addLayer(p));
             break;
           case 'waterStation':
+            gtag('event', 'click_layer_button', {
+                lzayer_type: 'waterStation',
+                button_id: 'showWaterStationBtn'
+            });
             clearAllLayers();
             document.getElementById('showWaterStationBtn').classList.add('active');
             waterStationMarkers.forEach((marker) => map.addLayer(marker));
             break;
           case 'restroom':
+            gtag('event', 'click_layer_button', {
+                layer_type: 'restroom',
+                button_id: 'showRestroomBtn'
+            });
             clearAllLayers();
             document.getElementById('showRestroomBtn').classList.add('active');
             restroomMarkers.forEach((marker) => map.addLayer(marker));
             break;
           case 'showerStation':
+            gtag('event', 'click_layer_button', {
+                layer_type: 'showerStation',
+                button_id: 'showShowerStationBtn'
+            });
             clearAllLayers();
             document.getElementById('showShowerStationBtn').classList.add('active');
             showerStationMarkers.forEach((marker) => map.addLayer(marker));
             break;
           case 'medicalStation':
+            gtag('event', 'click_layer_button', {
+                layer_type: 'medicalStation',
+                button_id: 'showMedicalStationBtn'
+            });
             clearAllLayers();
             document.getElementById('showMedicalStationBtn').classList.add('active');
             medicalStationMarkers.forEach((marker) => map.addLayer(marker));
             break;
           case 'disaster':
+            gtag('event', 'click_layer_button', {
+              layer_type: 'disaster',
+              button_id: 'showDisasterAreaBtn'
+            });
             clearAllLayers();
             document.getElementById('showDisasterAreaBtn').classList.add('active');
             if (disasterPolygon) map.addLayer(disasterPolygon);
